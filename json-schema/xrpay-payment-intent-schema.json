@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/xrpay/main/json-schema/xrpay-payment-intent-schema.json",
+  "title": "PaymentIntent",
+  "x-generated": "2026-10-09",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/xrpay-openapi.yml#/components/schemas/PaymentIntent",
+  "type": "object",
+  "required": [
+    "object",
+    "id",
+    "status",
+    "amount_minor",
+    "currency",
+    "external_order_id",
+    "livemode",
+    "sandbox_simulated",
+    "test_balance_credit",
+    "created_at",
+    "expires_at"
+  ],
+  "properties": {
+    "object": {
+      "const": "payment_intent"
+    },
+    "id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "requires_customer_action",
+        "processing",
+        "succeeded",
+        "failed",
+        "expired",
+        "canceled"
+      ]
+    },
+    "amount_minor": {
+      "type": "integer"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "external_order_id": {
+      "type": "string"
+    },
+    "order_number": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "customer_email": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "location_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "terminal_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operator_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "integration_type": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "line_items": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object"
+      }
+    },
+    "payment_method_types": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "card",
+          "mobile_money",
+          "bank",
+          "xrp",
+          "rlusd",
+          "crypto"
+        ]
+      }
+    },
+    "payment_method": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "collection_mode": {
+      "enum": [
+        "hosted",
+        "direct"
+      ]
+    },
+    "mobile_money": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "country",
+            "network",
+            "phone_last4"
+          ],
+          "properties": {
+            "country": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "network": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "phone_last4": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "refunded_amount_minor": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failure_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "settlement": {
+      "$ref": "#/$defs/Settlement"
+    },
+    "next_action": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PaymentNextAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "estimated_fees": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "collection_fee_minor": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "merchant_net_minor": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "livemode": {
+      "type": "boolean"
+    },
+    "sandbox_simulated": {
+      "type": "boolean"
+    },
+    "test_balance_credit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TestBalanceCredit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Present after a successful local-currency test simulation. Null for live intents, unsuccessful simulations, and crypto-settlement simulations."
+    },
+    "api_version": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canceled_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "MoneyString": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]{1,18})?$",
+      "description": "An exact non-negative decimal amount. Never parse this as a binary floating-point number."
+    },
+    "PaymentNextAction": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "display_qr",
+            "approve_on_phone",
+            "submit_otp",
+            "wait_for_confirmation",
+            "simulate_payment"
+          ]
+        },
+        "qr_data": {
+          "type": "string"
+        },
+        "qr_image": {
+          "type": "string"
+        },
+        "hosted_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "deep_link": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "confirmation_endpoint": {
+          "type": "string"
+        },
+        "simulation_endpoint": {
+          "type": "string"
+        }
+      }
+    },
+    "Settlement": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "transaction_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "TestBalanceCredit": {
+      "type": "object",
+      "description": "An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.",
+      "required": [
+        "credited",
+        "idempotent_replay",
+        "amount",
+        "currency",
+        "livemode",
+        "simulated",
+        "external_money_moved"
+      ],
+      "properties": {
+        "credited": {
+          "const": true
+        },
+        "idempotent_replay": {
+          "type": "boolean",
+          "description": "True when the same successful simulation was replayed and no second balance entry was created."
+        },
+        "amount": {
+          "$ref": "#/$defs/MoneyString"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "livemode": {
+          "const": false
+        },
+        "simulated": {
+          "const": true
+        },
+        "external_money_moved": {
+          "const": false
+        }
+      }
+    }
+  }
+}

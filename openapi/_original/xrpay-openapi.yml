@@ -1,0 +1,2139 @@
+# x-archived-from: xrpay-openapi.yml
+# x-archived-on: 2026-10-09
+openapi: 3.1.0
+info:
+  title: XRPay Cashier API
+  version: '2026-08-30'
+  description: 'Server-to-server API for payments, consolidated balances, bank and
+    Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials
+    use isolated virtual balances: a successful local-currency payment simulation
+    can fund a test payout, and executing that payout never contacts a bank or Mobile
+    Money network. Payment-intent amounts are integer minor units; payout and payroll
+    amounts are exact decimal strings. Provider identities and custody allocations
+    are never exposed.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Payment intents
+- name: Connected account
+- name: Refunds
+- name: Payouts
+- name: Payroll
+- name: Webhooks
+- name: Sandbox
+paths:
+  /api/v1/capabilities:
+    get:
+      tags:
+      - Payment intents
+      summary: List the authenticated merchant's ready payment methods and settlement
+        destinations
+      operationId: retrieveAccountCapabilities
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Rail-derived merchant capabilities for direct keys or connected-account
+            tokens
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/connect/account:
+    get:
+      tags:
+      - Connected account
+      summary: Retrieve the merchant connected to this access token
+      operationId: retrieveConnectedAccount
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Connected merchant account
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/connect/capabilities:
+    get:
+      tags:
+      - Connected account
+      summary: List ready payment methods and settlement destinations
+      operationId: retrieveConnectedAccountCapabilities
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Rail-derived connected merchant capabilities
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/connect/revoke:
+    post:
+      tags:
+      - Connected account
+      summary: Revoke the current platform connection
+      operationId: revokeConnectedAccountConnection
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Connection revoked
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/payment-intents:
+    get:
+      tags:
+      - Payment intents
+      summary: List payment intents
+      operationId: listPaymentIntents
+      x-required-scope: checkout.read
+      parameters:
+      - name: status
+        in: query
+        schema:
+          enum:
+          - requires_customer_action
+          - processing
+          - succeeded
+          - failed
+          - expired
+          - canceled
+      - name: external_order_id
+        in: query
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          pattern: ^dlv_
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+      responses:
+        '200':
+          description: Payment intent list
+    post:
+      tags:
+      - Payment intents
+      summary: Create a payment intent
+      operationId: createPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIntentCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '200':
+          description: Idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+  /api/v1/payment-intents/{id}:
+    get:
+      tags:
+      - Payment intents
+      summary: Retrieve a payment intent
+      operationId: retrievePaymentIntent
+      x-required-scope: checkout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payment intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/payment-intents/{id}/cancel:
+    post:
+      tags:
+      - Payment intents
+      summary: Cancel an unpaid payment intent
+      operationId: cancelPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payment-intents/{id}/confirm:
+    post:
+      tags:
+      - Payment intents
+      summary: Submit a Mobile Money one-time code
+      description: Use only when a direct Mobile Money intent returns next_action.type=submit_otp.
+        Most networks instead return approve_on_phone and require no confirmation
+        API call.
+      operationId: confirmPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - otp
+              properties:
+                otp:
+                  type: string
+                  pattern: ^[0-9]{4,10}$
+      responses:
+        '200':
+          description: One-time code accepted; payment confirmation remains asynchronous
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payment-intents/{id}/simulate:
+    post:
+      tags:
+      - Sandbox
+      summary: Simulate a test payment outcome
+      description: Available only with test credentials. No external payment or ledger
+        transaction is submitted. A successful local-currency simulation credits the
+        connected business's isolated test payout balance exactly once; the PaymentIntent
+        response describes that credit in test_balance_credit. Crypto-settlement simulations
+        do not create a local-currency payout balance.
+      operationId: simulatePaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - outcome
+              properties:
+                outcome:
+                  enum:
+                  - succeeded
+                  - failed
+                  - expired
+      responses:
+        '200':
+          description: Simulated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/refunds:
+    get:
+      tags:
+      - Refunds
+      summary: List refunds
+      operationId: listRefunds
+      x-required-scope: refund.read
+      parameters:
+      - name: payment_intent_id
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+      responses:
+        '200':
+          description: Refund list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundList'
+    post:
+      tags:
+      - Refunds
+      summary: Create a full or partial refund
+      description: Live XRPay refunds are non-custodial and enter requires_action
+        until the merchant approves and signs them.
+      operationId: createRefund
+      x-required-scope: refund.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '200':
+          description: Idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/refunds/{id}:
+    get:
+      tags:
+      - Refunds
+      summary: Retrieve a refund
+      operationId: retrieveRefund
+      x-required-scope: refund.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Refund
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/refunds/{id}/simulate:
+    post:
+      tags:
+      - Sandbox
+      summary: Simulate a test refund outcome
+      operationId: simulateRefund
+      x-required-scope: refund.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - outcome
+              properties:
+                outcome:
+                  enum:
+                  - completed
+                  - failed
+      responses:
+        '200':
+          description: Simulated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/balances:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve consolidated payout balances
+      description: Returns available, retained minimum, amount above that minimum,
+        reserved, in-flight, pending, and destination-specific withdrawable decimal
+        amounts without revealing custody providers. Test credentials return only
+        isolated virtual test balances; live and test balances never mix.
+      operationId: retrievePayoutBalances
+      x-required-scope: payout.read
+      parameters:
+      - name: destination_id
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Consolidated balances
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/payout-capabilities:
+    get:
+      tags:
+      - Payouts
+      summary: List payout corridors and aggregate limits
+      operationId: listPayoutCapabilities
+      x-required-scope: payout.read
+      parameters:
+      - name: country
+        in: query
+        schema:
+          type: string
+      - name: currency
+        in: query
+        schema:
+          type: string
+      - name: destination_type
+        in: query
+        schema:
+          enum:
+          - bank
+          - mobile_money
+      responses:
+        '200':
+          description: Provider-neutral payout capabilities
+  /api/v1/payout-institutions:
+    get:
+      tags:
+      - Payouts
+      summary: List canonical banks and Mobile Money operators
+      description: With a test API key, country=GH, currency=GHS, and type=bank or
+        type=mobile_money returns the matching XRPay simulated destination. Its test_mode
+        field is true; no real bank or Mobile Money operator is implied or contacted.
+        Live keys never return simulator institutions.
+      operationId: listPayoutInstitutions
+      x-required-scope: payout.read
+      parameters:
+      - name: country
+        in: query
+        schema:
+          type: string
+      - name: currency
+        in: query
+        schema:
+          type: string
+      - name: type
+        in: query
+        schema:
+          enum:
+          - bank
+          - mobile_money
+      responses:
+        '200':
+          description: Canonical institution list
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - object
+                - data
+                properties:
+                  object:
+                    const: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayoutInstitution'
+  /api/v1/payout-destinations:
+    get:
+      tags:
+      - Payouts
+      summary: List masked payout destinations
+      operationId: listPayoutDestinations
+      x-required-scope: payout.read
+      responses:
+        '200':
+          description: Payout destination list
+    post:
+      tags:
+      - Payouts
+      summary: Create or reuse a payout destination
+      description: Creates setup data only and does not move funds. Requires a stable
+        Idempotency-Key.
+      operationId: createPayoutDestination
+      x-required-scope: payout.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutDestinationCreate'
+      responses:
+        '201':
+          description: Destination created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutDestination'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payout-destinations/{id}:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve a masked payout destination
+      operationId: retrievePayoutDestination
+      x-required-scope: payout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payout destination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutDestination'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Payouts
+      summary: Deactivate a payout destination
+      operationId: deletePayoutDestination
+      x-required-scope: payout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Destination deactivated
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payout-quotes:
+    post:
+      tags:
+      - Payouts
+      summary: Quote an exact-net or maximum-balance payout
+      description: Creates an expiring quote without moving funds. Payout-balance
+        quotes subtract the account's retained minimum before calculating withdrawable
+        funds. The response aggregates internal custody legs and exposes fees and
+        transfer count, never provider names. With test credentials, simulated is
+        true and test_mode_notice states that execution will not send external money.
+      operationId: createPayoutQuote
+      x-required-scope: payout.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutQuoteCreate'
+      responses:
+        '201':
+          description: Expiring payout quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutQuote'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payouts:
+    get:
+      tags:
+      - Payouts
+      summary: List aggregate merchant payouts
+      operationId: listPayouts
+      x-required-scope: payout.read
+      responses:
+        '200':
+          description: Payout list
+    post:
+      tags:
+      - Payouts
+      summary: Atomically reserve and execute a quoted payout
+      description: 'With live credentials, this is a money-moving operation: XRPay
+        validates the quote, reserves the total debit, and submits the bank or Mobile
+        Money payout. With test credentials, XRPay changes only isolated virtual balances,
+        contacts no external financial network, and returns external_transfer_sent=false.'
+      operationId: createPayout
+      x-required-scope: payout.execute
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - quote_id
+              properties:
+                quote_id:
+                  type: string
+      responses:
+        '201':
+          description: Payout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '200':
+          description: Idempotent replay
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payouts/{id}:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve aggregate payout and opaque delivery parts
+      operationId: retrievePayout
+      x-required-scope: payout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/payroll/employees:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll employees
+      operationId: listPayrollEmployees
+      x-required-scope: payroll.read
+      responses:
+        '200':
+          description: Employee list
+    post:
+      tags:
+      - Payroll
+      summary: Create an employee with a fixed local-fiat salary
+      operationId: createPayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayrollEmployeeCreate'
+      responses:
+        '201':
+          description: Employee created
+  /api/v1/payroll/employees/{id}:
+    get:
+      tags:
+      - Payroll
+      summary: Retrieve a payroll employee
+      operationId: retrievePayrollEmployee
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Employee
+    patch:
+      tags:
+      - Payroll
+      summary: Update salary or employee state
+      operationId: updatePayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 160
+                salary:
+                  $ref: '#/components/schemas/MoneyString'
+                status:
+                  enum:
+                  - active
+                  - inactive
+      responses:
+        '200':
+          description: Updated employee
+    delete:
+      tags:
+      - Payroll
+      summary: Deactivate a payroll employee
+      operationId: deletePayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Employee deactivated
+  /api/v1/payroll/employees/{id}/invitations:
+    post:
+      tags:
+      - Payroll
+      summary: Send a signed destination setup invitation
+      operationId: createPayrollDestinationInvitation
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Invitation sent
+  /api/v1/payroll/runs:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll runs
+      operationId: listPayrollRuns
+      x-required-scope: payroll.read
+      responses:
+        '200':
+          description: Payroll run list
+    post:
+      tags:
+      - Payroll
+      summary: Create a provider-balance payroll run
+      operationId: createPayrollRun
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - currency
+              properties:
+                currency:
+                  type: string
+                funding_source:
+                  const: provider_balance
+                employee_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Payroll run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+        '200':
+          description: Idempotent replay
+  /api/v1/payroll/runs/{id}:
+    get:
+      tags:
+      - Payroll
+      summary: Retrieve payroll run and employee payment states
+      operationId: retrievePayrollRun
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payroll run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+  /api/v1/payroll/runs/{id}/items:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll run items
+      operationId: listPayrollRunItems
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Run items
+    post:
+      tags:
+      - Payroll
+      summary: Add one employee salary to a pending run
+      operationId: createPayrollRunItem
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - employee_id
+              properties:
+                employee_id:
+                  type: string
+      responses:
+        '201':
+          description: Run item created
+  /api/v1/payroll/runs/{id}/quote:
+    post:
+      tags:
+      - Payroll
+      summary: Allocate each whole salary to one eligible custody pool
+      operationId: quotePayrollRun
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Quoted payroll run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payroll/runs/{id}/approve:
+    post:
+      tags:
+      - Payroll
+      summary: Approve the quoted total debit
+      description: Records approval for the quoted run but does not submit employee
+        transfers. The separate execute operation moves funds.
+      operationId: approvePayrollRun
+      x-required-scope: payroll.execute
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Approved payroll run
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/payroll/runs/{id}/execute:
+    post:
+      tags:
+      - Payroll
+      summary: Atomically reserve and submit every employee payout
+      description: Money-moving operation. Reserves the approved total debit and submits
+        every eligible employee payout.
+      operationId: executePayrollRun
+      x-required-scope: payroll.execute
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Processing or terminal payroll run
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/webhooks:
+    get:
+      tags:
+      - Webhooks
+      summary: List webhook endpoints for the current credential mode
+      operationId: listWebhookEndpoints
+      x-required-scope: webhook.read
+      responses:
+        '200':
+          description: Mode-scoped endpoint list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointList'
+    post:
+      tags:
+      - Webhooks
+      summary: Register a mode-scoped webhook endpoint
+      description: The signing secret is returned only when the endpoint is first
+        created; updating the same URL never reveals it again. Test and live credentials
+        create separate endpoints, even for the same URL.
+      operationId: createWebhookEndpoint
+      x-required-scope: webhook.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointCreate'
+      responses:
+        '201':
+          description: Endpoint created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+        '200':
+          description: Existing endpoint updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+        '400':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Webhooks
+      summary: Delete a webhook endpoint
+      operationId: deleteWebhookEndpoint
+      x-required-scope: webhook.write
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Endpoint deleted
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/webhook-deliveries:
+    get:
+      tags:
+      - Webhooks
+      summary: List webhook delivery status and attempts
+      operationId: listWebhookDeliveries
+      x-required-scope: webhook.read
+      parameters:
+      - name: status
+        in: query
+        schema:
+          enum:
+          - queued
+          - delivering
+          - delivered
+          - failed
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+      responses:
+        '200':
+          description: Delivery list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryList'
+        '400':
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Webhooks
+      summary: Replay one webhook delivery with a fresh delivery-attempt cycle
+      operationId: replayWebhookDelivery
+      x-required-scope: webhook.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - delivery_id
+              properties:
+                delivery_id:
+                  type: string
+                  pattern: ^dlv_
+      responses:
+        '202':
+          description: Replay accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/webhooks/{id}/secret:
+    post:
+      tags:
+      - Webhooks
+      summary: Rotate a webhook signing secret
+      description: Immediately replaces the endpoint's prior secret. The new secret
+        is returned only in this response.
+      operationId: rotateWebhookSecret
+      x-required-scope: webhook.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '201':
+          description: Secret rotated and revealed once
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSecret'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different
+        parameters returns HTTP 409.
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    PaymentIntentCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - amount_minor
+      - currency
+      - external_order_id
+      properties:
+        amount_minor:
+          type: integer
+          minimum: 1
+          description: Fiat amount in the currency's smallest unit.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples:
+          - USD
+        external_order_id:
+          type: string
+          maxLength: 200
+        order_number:
+          type: string
+          maxLength: 200
+        customer_email:
+          type: string
+          format: email
+        location_id:
+          type: string
+          maxLength: 200
+        terminal_id:
+          type: string
+          maxLength: 200
+        operator_id:
+          type: string
+          maxLength: 200
+        integration_type:
+          enum:
+          - pos
+          - ecommerce
+          - invoice
+          - payment_link
+          - api
+          default: pos
+        payment_method_types:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            enum:
+            - card
+            - mobile_money
+            - bank
+            - xrp
+            - rlusd
+            - crypto
+          description: Optional allow-list enforced by both the hosted checkout UI
+            and server actions.
+        collection_mode:
+          enum:
+          - hosted
+          - direct
+          default: hosted
+          description: Use direct with mobile_money to send the approval prompt to
+            the customer's phone without creating a hosted checkout page.
+        payment_method_data:
+          anyOf:
+          - $ref: '#/components/schemas/DirectMobileMoneyPaymentMethodData'
+          - type: 'null'
+          description: Required only for direct Mobile Money collection. The full
+            phone number is used for submission but is never returned.
+        settlement_currency:
+          enum:
+          - XRP
+          - RLUSD
+        metadata:
+          type: object
+          maxProperties: 100
+        line_items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/LineItem'
+        success_url:
+          type: string
+          format: uri
+        cancel_url:
+          type: string
+          format: uri
+        expires_in:
+          type: integer
+          minimum: 60
+          maximum: 2592000
+          description: Relative expiry in seconds. Mutually exclusive with expires_at.
+        expires_at:
+          type: string
+          format: date-time
+          description: Absolute expiry at least 60 seconds and no more than 30 days
+            ahead. Mutually exclusive with expires_in.
+    LineItem:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+        unit_amount_minor:
+          type: integer
+          minimum: 0
+        sku:
+          type: string
+    DirectMobileMoneyPaymentMethodData:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - mobile_money
+      properties:
+        type:
+          const: mobile_money
+        mobile_money:
+          type: object
+          additionalProperties: false
+          required:
+          - country
+          - network
+          - phone
+          properties:
+            country:
+              type: string
+              minLength: 2
+              maxLength: 2
+              examples:
+              - GH
+            network:
+              type: string
+              examples:
+              - mtn
+            phone:
+              type: string
+              description: Customer Mobile Money number. E.164 with country code is
+                recommended.
+              examples:
+              - '+233599233665'
+    PaymentIntent:
+      type: object
+      required:
+      - object
+      - id
+      - status
+      - amount_minor
+      - currency
+      - external_order_id
+      - livemode
+      - sandbox_simulated
+      - test_balance_credit
+      - created_at
+      - expires_at
+      properties:
+        object:
+          const: payment_intent
+        id:
+          type: string
+        status:
+          enum:
+          - requires_customer_action
+          - processing
+          - succeeded
+          - failed
+          - expired
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        external_order_id:
+          type: string
+        order_number:
+          type:
+          - string
+          - 'null'
+        customer_email:
+          type:
+          - string
+          - 'null'
+        location_id:
+          type:
+          - string
+          - 'null'
+        terminal_id:
+          type:
+          - string
+          - 'null'
+        operator_id:
+          type:
+          - string
+          - 'null'
+        integration_type:
+          type: string
+        metadata:
+          type:
+          - object
+          - 'null'
+        line_items:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        payment_method_types:
+          type:
+          - array
+          - 'null'
+          items:
+            enum:
+            - card
+            - mobile_money
+            - bank
+            - xrp
+            - rlusd
+            - crypto
+        payment_method:
+          type:
+          - string
+          - 'null'
+        collection_mode:
+          enum:
+          - hosted
+          - direct
+        mobile_money:
+          anyOf:
+          - type: object
+            required:
+            - country
+            - network
+            - phone_last4
+            properties:
+              country:
+                type:
+                - string
+                - 'null'
+              network:
+                type:
+                - string
+                - 'null'
+              phone_last4:
+                type:
+                - string
+                - 'null'
+          - type: 'null'
+        refunded_amount_minor:
+          type: integer
+          minimum: 0
+        failure_code:
+          type:
+          - string
+          - 'null'
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        next_action:
+          anyOf:
+          - $ref: '#/components/schemas/PaymentNextAction'
+          - type: 'null'
+        estimated_fees:
+          anyOf:
+          - type: object
+            properties:
+              collection_fee_minor:
+                type:
+                - integer
+                - 'null'
+              merchant_net_minor:
+                type:
+                - integer
+                - 'null'
+          - type: 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        test_balance_credit:
+          anyOf:
+          - $ref: '#/components/schemas/TestBalanceCredit'
+          - type: 'null'
+          description: Present after a successful local-currency test simulation.
+            Null for live intents, unsuccessful simulations, and crypto-settlement
+            simulations.
+        api_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        canceled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    TestBalanceCredit:
+      type: object
+      description: An idempotent credit to the connected business's isolated virtual
+        payout balance. It never represents external money movement.
+      required:
+      - credited
+      - idempotent_replay
+      - amount
+      - currency
+      - livemode
+      - simulated
+      - external_money_moved
+      properties:
+        credited:
+          const: true
+        idempotent_replay:
+          type: boolean
+          description: True when the same successful simulation was replayed and no
+            second balance entry was created.
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+        livemode:
+          const: false
+        simulated:
+          const: true
+        external_money_moved:
+          const: false
+    Settlement:
+      type: object
+      properties:
+        amount:
+          type: string
+        currency:
+          type: string
+        transaction_hash:
+          type:
+          - string
+          - 'null'
+        destination_address:
+          type:
+          - string
+          - 'null'
+    PaymentNextAction:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          enum:
+          - display_qr
+          - approve_on_phone
+          - submit_otp
+          - wait_for_confirmation
+          - simulate_payment
+        qr_data:
+          type: string
+        qr_image:
+          type: string
+        hosted_url:
+          type: string
+          format: uri
+        deep_link:
+          type: string
+        message:
+          type: string
+        confirmation_endpoint:
+          type: string
+        simulation_endpoint:
+          type: string
+    RefundCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - payment_intent_id
+      properties:
+        payment_intent_id:
+          type: string
+        amount_minor:
+          type: integer
+          minimum: 1
+          description: Omit to refund the remaining refundable amount.
+        reason:
+          type: string
+          maxLength: 500
+        external_refund_id:
+          type: string
+          maxLength: 200
+    Refund:
+      type: object
+      required:
+      - object
+      - id
+      - payment_intent_id
+      - status
+      - amount_minor
+      - currency
+      properties:
+        object:
+          const: refund
+        id:
+          type: string
+        payment_intent_id:
+          type: string
+        status:
+          enum:
+          - pending
+          - requires_action
+          - processing
+          - completed
+          - failed
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        type:
+          enum:
+          - full
+          - partial
+        reason:
+          type:
+          - string
+          - 'null'
+        external_refund_id:
+          type:
+          - string
+          - 'null'
+        next_action:
+          type:
+          - object
+          - 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        failed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    RefundList:
+      type: object
+      required:
+      - object
+      - data
+      - has_more
+      properties:
+        object:
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refund'
+        has_more:
+          type: boolean
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary
+        floating-point number.
+    PayoutInstitution:
+      type: object
+      required:
+      - id
+      - object
+      - type
+      - country
+      - currency
+      - code
+      - name
+      - status
+      - test_mode
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_institution
+        type:
+          enum:
+          - bank
+          - mobile_money
+        country:
+          type: string
+        currency:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        test_mode:
+          type: boolean
+          description: True only for an XRPay simulated destination. It does not identify
+            a real bank or Mobile Money operator.
+    PayoutDestinationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - institution_id
+      - account_holder_name
+      - account_number
+      properties:
+        institution_id:
+          type: string
+        account_holder_name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        account_number:
+          type: string
+          minLength: 4
+          maxLength: 100
+        label:
+          type: string
+          maxLength: 200
+        make_default:
+          type: boolean
+    PayoutDestination:
+      type: object
+      required:
+      - id
+      - object
+      - type
+      - country
+      - currency
+      - last4
+      - status
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_destination
+        type:
+          enum:
+          - bank
+          - mobile_money
+        country:
+          type: string
+        currency:
+          type: string
+        label:
+          type:
+          - string
+          - 'null'
+        account_holder_name:
+          type:
+          - string
+          - 'null'
+        last4:
+          type: string
+        status:
+          enum:
+          - pending
+          - verified
+          - inactive
+        is_default:
+          type: boolean
+    PayoutQuoteCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - destination_id
+      - currency
+      - amount_mode
+      properties:
+        destination_id:
+          type: string
+        currency:
+          type: string
+        amount_mode:
+          enum:
+          - exact
+          - maximum
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        funding_source:
+          const: provider_balance
+    PayoutQuote:
+      type: object
+      required:
+      - id
+      - object
+      - livemode
+      - simulated
+      - test_mode_notice
+      - funding_source
+      - amount_mode
+      - currency
+      - recipient_amount
+      - total_debit_amount
+      - transfer_count
+      - expires_at
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_quote
+        livemode:
+          type: boolean
+        simulated:
+          type: boolean
+          description: True when the quote uses an isolated test balance.
+        test_mode_notice:
+          type:
+          - string
+          - 'null'
+          description: For test quotes, confirms that execution will not send money
+            to a bank or Mobile Money wallet. Null for live quotes.
+        funding_source:
+          const: provider_balance
+        amount_mode:
+          enum:
+          - exact
+          - maximum
+        currency:
+          type: string
+        requested_amount:
+          anyOf:
+          - $ref: '#/components/schemas/MoneyString'
+          - type: 'null'
+        recipient_amount:
+          $ref: '#/components/schemas/MoneyString'
+        withdrawal_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+          description: Combined withdrawal fee.
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        transfer_count:
+          type: integer
+          minimum: 1
+        estimated_delivery_seconds:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Aggregate delivery estimate for the slowest internal transfer
+            part, when every part has an estimate.
+        can_execute:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: object
+        expires_at:
+          type: string
+          format: date-time
+    Payout:
+      type: object
+      description: One merchant-facing payout. Delivery IDs are opaque and never identify
+        a provider.
+      required:
+      - id
+      - object
+      - livemode
+      - simulated
+      - external_transfer_sent
+      - status_message
+      - destination_id
+      - currency
+      - recipient_amount
+      - total_debit_amount
+      - status
+      - deliveries
+      properties:
+        id:
+          type: string
+        object:
+          const: payout
+        livemode:
+          type: boolean
+        simulated:
+          type: boolean
+          description: True when the payout changes only isolated test balances.
+        external_transfer_sent:
+          type:
+          - boolean
+          - 'null'
+          description: Always false for test payouts. Null for live payouts because
+            delivery state is represented by status and deliveries.
+        status_message:
+          type:
+          - string
+          - 'null'
+          description: For test payouts, explicitly confirms that no external bank
+            or Mobile Money transfer was sent. Null for live payouts.
+        funding_source:
+          const: provider_balance
+        destination_id:
+          type: string
+        currency:
+          type: string
+        recipient_amount:
+          $ref: '#/components/schemas/MoneyString'
+        withdrawal_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+          description: Combined withdrawal fee.
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        status:
+          enum:
+          - pending
+          - processing
+          - partially_completed
+          - completed
+          - failed
+          - action_required
+        failure_code:
+          type:
+          - string
+          - 'null'
+        failure_message:
+          type:
+          - string
+          - 'null'
+        deliveries:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - amount
+            - currency
+            - status
+            properties:
+              id:
+                type: string
+              amount:
+                $ref: '#/components/schemas/MoneyString'
+              currency:
+                type: string
+              status:
+                enum:
+                - processing
+                - completed
+                - failed
+                - action_required
+              reference:
+                type:
+                - string
+                - 'null'
+    PayrollEmployeeCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - email
+      - salary
+      - currency
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        email:
+          type: string
+          format: email
+        salary:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+    PayrollRun:
+      type: object
+      description: A single-currency payroll run. Each payment is indivisible and
+        uses exactly one internal custody pool.
+      required:
+      - id
+      - object
+      - livemode
+      - currency
+      - funding_source
+      - status
+      - total_recipients
+      - salary_total
+      - total_debit_amount
+      - payments
+      properties:
+        id:
+          type: string
+        object:
+          const: payroll_run
+        livemode:
+          type: boolean
+        currency:
+          type: string
+        funding_source:
+          const: provider_balance
+        status:
+          enum:
+          - pending
+          - quoted
+          - approved
+          - processing
+          - partially_completed
+          - completed
+          - failed
+          - action_required
+          - cancelled
+        total_recipients:
+          type: integer
+        salary_total:
+          $ref: '#/components/schemas/MoneyString'
+        provider_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+        xrpay_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        quote_expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        payments:
+          type: array
+          items:
+            type: object
+    WebhookEvent:
+      type: object
+      description: The id/webhook_id remains stable across all attempts and replay
+        operations.
+      required:
+      - id
+      - object
+      - api_version
+      - created_at
+      - type
+      - livemode
+      - data
+      properties:
+        id:
+          type: string
+          pattern: ^evt_
+        object:
+          const: event
+        api_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        type:
+          type: string
+        connected_account_id:
+          type: string
+        platform_connection_id:
+          type: string
+        livemode:
+          type: boolean
+          description: False for deterministic sandbox events.
+        data:
+          type: object
+    WebhookEndpointCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - url
+      - events
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        url:
+          type: string
+          format: uri
+          description: A public HTTPS endpoint.
+        events:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            enum:
+            - payment.created
+            - payment.processing
+            - payment.confirmed
+            - payment.failed
+            - payment.canceled
+            - payment.refunded
+            - payment.swept
+            - refund.created
+            - refund.completed
+            - refund.failed
+            - payout.created
+            - payout.processing
+            - payout.action_required
+            - payout.partially_completed
+            - payout.completed
+            - payout.failed
+            - payroll.run.created
+            - payroll.run.approved
+            - payroll.run.processing
+            - payroll.run.action_required
+            - payroll.run.partially_completed
+            - payroll.run.completed
+            - payroll.run.failed
+            - payroll.payment.completed
+            - payroll.payment.failed
+            - payroll.payment.action_required
+            - checkout.session.completed
+            - checkout.session.expired
+            - escrow.created
+            - escrow.released
+            - escrow.cancelled
+            - invoice.created
+            - invoice.sent
+            - invoice.paid
+            - b2b.order.created
+            - b2b.order.paid
+            - b2b.order.shipped
+    WebhookEndpoint:
+      type: object
+      required:
+      - object
+      - id
+      - url
+      - events
+      - is_active
+      - livemode
+      properties:
+        object:
+          const: webhook_endpoint
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        secret:
+          type: string
+          description: Signing secret. Returned only when an endpoint is first created.
+        secret_revealed:
+          type: boolean
+        is_active:
+          type: boolean
+        livemode:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    WebhookSecret:
+      type: object
+      required:
+      - object
+      - webhook_id
+      - secret
+      - secret_revealed
+      - livemode
+      - rotated_at
+      properties:
+        object:
+          const: webhook_secret
+        webhook_id:
+          type: string
+        secret:
+          type: string
+          pattern: ^whsec_
+        secret_revealed:
+          const: true
+        livemode:
+          type: boolean
+        rotated_at:
+          type: string
+          format: date-time
+    WebhookEndpointList:
+      type: object
+      required:
+      - object
+      - data
+      properties:
+        object:
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
+    WebhookDelivery:
+      type: object
+      required:
+      - object
+      - id
+      - event_id
+      - destination_type
+      - endpoint
+      - status
+      - attempt_count
+      - created_at
+      - updated_at
+      properties:
+        object:
+          const: webhook_delivery
+        id:
+          type: string
+          pattern: ^dlv_
+        event_id:
+          type: string
+          pattern: ^evt_
+        event_type:
+          type:
+          - string
+          - 'null'
+        destination_type:
+          enum:
+          - webhook_endpoint
+          - platform_connection
+        destination_id:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        status:
+          enum:
+          - queued
+          - delivering
+          - delivered
+          - failed
+        attempt_count:
+          type: integer
+          minimum: 0
+        last_status_code:
+          type:
+          - integer
+          - 'null'
+        last_error:
+          type:
+          - string
+          - 'null'
+        delivered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    WebhookDeliveryList:
+      type: object
+      required:
+      - object
+      - data
+      - has_more
+      - next_cursor
+      properties:
+        object:
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+          - string
+          - 'null'
+          pattern: ^dlv_
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string

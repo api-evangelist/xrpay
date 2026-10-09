@@ -1,0 +1,482 @@
+{
+  "@context": {
+    "@vocab": "https://xrpay.it/schema#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "xrpay": "https://xrpay.it/schema#",
+    "PaymentIntentCreate": "xrpay:PaymentIntentCreate",
+    "amount_minor": {
+      "@id": "xrpay:amount_minor",
+      "@type": "xsd:integer"
+    },
+    "currency": {
+      "@id": "xrpay:currency",
+      "@type": "xsd:string"
+    },
+    "external_order_id": {
+      "@id": "xrpay:external_order_id",
+      "@type": "xsd:string"
+    },
+    "order_number": {
+      "@id": "xrpay:order_number",
+      "@type": "xsd:string"
+    },
+    "customer_email": {
+      "@id": "xrpay:customer_email",
+      "@type": "xsd:string"
+    },
+    "location_id": {
+      "@id": "xrpay:location_id",
+      "@type": "xsd:string"
+    },
+    "terminal_id": {
+      "@id": "xrpay:terminal_id",
+      "@type": "xsd:string"
+    },
+    "operator_id": {
+      "@id": "xrpay:operator_id",
+      "@type": "xsd:string"
+    },
+    "integration_type": {
+      "@id": "xrpay:integration_type"
+    },
+    "payment_method_types": {
+      "@id": "xrpay:payment_method_types",
+      "@container": "@list"
+    },
+    "collection_mode": {
+      "@id": "xrpay:collection_mode"
+    },
+    "payment_method_data": {
+      "@id": "xrpay:payment_method_data"
+    },
+    "settlement_currency": {
+      "@id": "xrpay:settlement_currency"
+    },
+    "metadata": {
+      "@id": "xrpay:metadata"
+    },
+    "line_items": {
+      "@id": "xrpay:line_items",
+      "@container": "@list"
+    },
+    "success_url": {
+      "@id": "xrpay:success_url",
+      "@type": "@id"
+    },
+    "cancel_url": {
+      "@id": "xrpay:cancel_url",
+      "@type": "@id"
+    },
+    "expires_in": {
+      "@id": "xrpay:expires_in",
+      "@type": "xsd:integer"
+    },
+    "expires_at": {
+      "@id": "xrpay:expires_at",
+      "@type": "xsd:dateTime"
+    },
+    "LineItem": "xrpay:LineItem",
+    "name": {
+      "@id": "xrpay:name",
+      "@type": "xsd:string"
+    },
+    "quantity": {
+      "@id": "xrpay:quantity",
+      "@type": "xsd:integer"
+    },
+    "unit_amount_minor": {
+      "@id": "xrpay:unit_amount_minor",
+      "@type": "xsd:integer"
+    },
+    "sku": {
+      "@id": "xrpay:sku",
+      "@type": "xsd:string"
+    },
+    "DirectMobileMoneyPaymentMethodData": "xrpay:DirectMobileMoneyPaymentMethodData",
+    "type": {
+      "@id": "xrpay:type"
+    },
+    "mobile_money": {
+      "@id": "xrpay:mobile_money"
+    },
+    "PaymentIntent": "xrpay:PaymentIntent",
+    "object": {
+      "@id": "xrpay:object"
+    },
+    "id": {
+      "@id": "xrpay:id",
+      "@type": "xsd:string"
+    },
+    "status": {
+      "@id": "xrpay:status"
+    },
+    "payment_method": {
+      "@id": "xrpay:payment_method",
+      "@type": "xsd:string"
+    },
+    "refunded_amount_minor": {
+      "@id": "xrpay:refunded_amount_minor",
+      "@type": "xsd:integer"
+    },
+    "failure_code": {
+      "@id": "xrpay:failure_code",
+      "@type": "xsd:string"
+    },
+    "settlement": {
+      "@id": "xrpay:settlement",
+      "@type": "@id"
+    },
+    "next_action": {
+      "@id": "xrpay:next_action"
+    },
+    "estimated_fees": {
+      "@id": "xrpay:estimated_fees"
+    },
+    "livemode": {
+      "@id": "xrpay:livemode",
+      "@type": "xsd:boolean"
+    },
+    "sandbox_simulated": {
+      "@id": "xrpay:sandbox_simulated",
+      "@type": "xsd:boolean"
+    },
+    "test_balance_credit": {
+      "@id": "xrpay:test_balance_credit"
+    },
+    "api_version": {
+      "@id": "xrpay:api_version",
+      "@type": "xsd:string"
+    },
+    "created_at": {
+      "@id": "xrpay:created_at",
+      "@type": "xsd:dateTime"
+    },
+    "updated_at": {
+      "@id": "xrpay:updated_at",
+      "@type": "xsd:dateTime"
+    },
+    "canceled_at": {
+      "@id": "xrpay:canceled_at",
+      "@type": "xsd:dateTime"
+    },
+    "TestBalanceCredit": "xrpay:TestBalanceCredit",
+    "credited": {
+      "@id": "xrpay:credited"
+    },
+    "idempotent_replay": {
+      "@id": "xrpay:idempotent_replay",
+      "@type": "xsd:boolean"
+    },
+    "amount": {
+      "@id": "xrpay:amount",
+      "@type": "@id"
+    },
+    "simulated": {
+      "@id": "xrpay:simulated"
+    },
+    "external_money_moved": {
+      "@id": "xrpay:external_money_moved"
+    },
+    "Settlement": "xrpay:Settlement",
+    "transaction_hash": {
+      "@id": "xrpay:transaction_hash",
+      "@type": "xsd:string"
+    },
+    "destination_address": {
+      "@id": "xrpay:destination_address",
+      "@type": "xsd:string"
+    },
+    "PaymentNextAction": "xrpay:PaymentNextAction",
+    "qr_data": {
+      "@id": "xrpay:qr_data",
+      "@type": "xsd:string"
+    },
+    "qr_image": {
+      "@id": "xrpay:qr_image",
+      "@type": "xsd:string"
+    },
+    "hosted_url": {
+      "@id": "xrpay:hosted_url",
+      "@type": "@id"
+    },
+    "deep_link": {
+      "@id": "xrpay:deep_link",
+      "@type": "xsd:string"
+    },
+    "message": {
+      "@id": "xrpay:message",
+      "@type": "xsd:string"
+    },
+    "confirmation_endpoint": {
+      "@id": "xrpay:confirmation_endpoint",
+      "@type": "xsd:string"
+    },
+    "simulation_endpoint": {
+      "@id": "xrpay:simulation_endpoint",
+      "@type": "xsd:string"
+    },
+    "RefundCreate": "xrpay:RefundCreate",
+    "payment_intent_id": {
+      "@id": "xrpay:payment_intent_id",
+      "@type": "xsd:string"
+    },
+    "reason": {
+      "@id": "xrpay:reason",
+      "@type": "xsd:string"
+    },
+    "external_refund_id": {
+      "@id": "xrpay:external_refund_id",
+      "@type": "xsd:string"
+    },
+    "Refund": "xrpay:Refund",
+    "completed_at": {
+      "@id": "xrpay:completed_at",
+      "@type": "xsd:dateTime"
+    },
+    "failed_at": {
+      "@id": "xrpay:failed_at",
+      "@type": "xsd:dateTime"
+    },
+    "RefundList": "xrpay:RefundList",
+    "data": {
+      "@id": "xrpay:data",
+      "@container": "@list"
+    },
+    "has_more": {
+      "@id": "xrpay:has_more",
+      "@type": "xsd:boolean"
+    },
+    "PayoutInstitution": "xrpay:PayoutInstitution",
+    "country": {
+      "@id": "xrpay:country",
+      "@type": "xsd:string"
+    },
+    "code": {
+      "@id": "xrpay:code",
+      "@type": "xsd:string"
+    },
+    "test_mode": {
+      "@id": "xrpay:test_mode",
+      "@type": "xsd:boolean"
+    },
+    "PayoutDestinationCreate": "xrpay:PayoutDestinationCreate",
+    "institution_id": {
+      "@id": "xrpay:institution_id",
+      "@type": "xsd:string"
+    },
+    "account_holder_name": {
+      "@id": "xrpay:account_holder_name",
+      "@type": "xsd:string"
+    },
+    "account_number": {
+      "@id": "xrpay:account_number",
+      "@type": "xsd:string"
+    },
+    "label": {
+      "@id": "xrpay:label",
+      "@type": "xsd:string"
+    },
+    "make_default": {
+      "@id": "xrpay:make_default",
+      "@type": "xsd:boolean"
+    },
+    "PayoutDestination": "xrpay:PayoutDestination",
+    "last4": {
+      "@id": "xrpay:last4",
+      "@type": "xsd:string"
+    },
+    "is_default": {
+      "@id": "xrpay:is_default",
+      "@type": "xsd:boolean"
+    },
+    "PayoutQuoteCreate": "xrpay:PayoutQuoteCreate",
+    "destination_id": {
+      "@id": "xrpay:destination_id",
+      "@type": "xsd:string"
+    },
+    "amount_mode": {
+      "@id": "xrpay:amount_mode"
+    },
+    "funding_source": {
+      "@id": "xrpay:funding_source"
+    },
+    "PayoutQuote": "xrpay:PayoutQuote",
+    "test_mode_notice": {
+      "@id": "xrpay:test_mode_notice",
+      "@type": "xsd:string"
+    },
+    "requested_amount": {
+      "@id": "xrpay:requested_amount"
+    },
+    "recipient_amount": {
+      "@id": "xrpay:recipient_amount",
+      "@type": "@id"
+    },
+    "withdrawal_fee_amount": {
+      "@id": "xrpay:withdrawal_fee_amount",
+      "@type": "@id"
+    },
+    "total_debit_amount": {
+      "@id": "xrpay:total_debit_amount",
+      "@type": "@id"
+    },
+    "transfer_count": {
+      "@id": "xrpay:transfer_count",
+      "@type": "xsd:integer"
+    },
+    "estimated_delivery_seconds": {
+      "@id": "xrpay:estimated_delivery_seconds",
+      "@type": "xsd:integer"
+    },
+    "can_execute": {
+      "@id": "xrpay:can_execute",
+      "@type": "xsd:boolean"
+    },
+    "blockers": {
+      "@id": "xrpay:blockers",
+      "@container": "@list"
+    },
+    "Payout": "xrpay:Payout",
+    "external_transfer_sent": {
+      "@id": "xrpay:external_transfer_sent",
+      "@type": "xsd:boolean"
+    },
+    "status_message": {
+      "@id": "xrpay:status_message",
+      "@type": "xsd:string"
+    },
+    "failure_message": {
+      "@id": "xrpay:failure_message",
+      "@type": "xsd:string"
+    },
+    "deliveries": {
+      "@id": "xrpay:deliveries",
+      "@container": "@list"
+    },
+    "PayrollEmployeeCreate": "xrpay:PayrollEmployeeCreate",
+    "email": {
+      "@id": "xrpay:email",
+      "@type": "xsd:string"
+    },
+    "salary": {
+      "@id": "xrpay:salary",
+      "@type": "@id"
+    },
+    "PayrollRun": "xrpay:PayrollRun",
+    "total_recipients": {
+      "@id": "xrpay:total_recipients",
+      "@type": "xsd:integer"
+    },
+    "salary_total": {
+      "@id": "xrpay:salary_total",
+      "@type": "@id"
+    },
+    "provider_fee_amount": {
+      "@id": "xrpay:provider_fee_amount",
+      "@type": "@id"
+    },
+    "xrpay_fee_amount": {
+      "@id": "xrpay:xrpay_fee_amount",
+      "@type": "@id"
+    },
+    "quote_expires_at": {
+      "@id": "xrpay:quote_expires_at",
+      "@type": "xsd:dateTime"
+    },
+    "payments": {
+      "@id": "xrpay:payments",
+      "@container": "@list"
+    },
+    "WebhookEvent": "xrpay:WebhookEvent",
+    "connected_account_id": {
+      "@id": "xrpay:connected_account_id",
+      "@type": "xsd:string"
+    },
+    "platform_connection_id": {
+      "@id": "xrpay:platform_connection_id",
+      "@type": "xsd:string"
+    },
+    "WebhookEndpointCreate": "xrpay:WebhookEndpointCreate",
+    "url": {
+      "@id": "xrpay:url",
+      "@type": "@id"
+    },
+    "events": {
+      "@id": "xrpay:events",
+      "@container": "@list"
+    },
+    "WebhookEndpoint": "xrpay:WebhookEndpoint",
+    "secret": {
+      "@id": "xrpay:secret",
+      "@type": "xsd:string"
+    },
+    "secret_revealed": {
+      "@id": "xrpay:secret_revealed",
+      "@type": "xsd:boolean"
+    },
+    "is_active": {
+      "@id": "xrpay:is_active",
+      "@type": "xsd:boolean"
+    },
+    "WebhookSecret": "xrpay:WebhookSecret",
+    "webhook_id": {
+      "@id": "xrpay:webhook_id",
+      "@type": "xsd:string"
+    },
+    "rotated_at": {
+      "@id": "xrpay:rotated_at",
+      "@type": "xsd:dateTime"
+    },
+    "WebhookEndpointList": "xrpay:WebhookEndpointList",
+    "WebhookDelivery": "xrpay:WebhookDelivery",
+    "event_id": {
+      "@id": "xrpay:event_id",
+      "@type": "xsd:string"
+    },
+    "event_type": {
+      "@id": "xrpay:event_type",
+      "@type": "xsd:string"
+    },
+    "destination_type": {
+      "@id": "xrpay:destination_type"
+    },
+    "endpoint": {
+      "@id": "xrpay:endpoint",
+      "@type": "@id"
+    },
+    "attempt_count": {
+      "@id": "xrpay:attempt_count",
+      "@type": "xsd:integer"
+    },
+    "last_status_code": {
+      "@id": "xrpay:last_status_code",
+      "@type": "xsd:integer"
+    },
+    "last_error": {
+      "@id": "xrpay:last_error",
+      "@type": "xsd:string"
+    },
+    "delivered_at": {
+      "@id": "xrpay:delivered_at",
+      "@type": "xsd:dateTime"
+    },
+    "WebhookDeliveryList": "xrpay:WebhookDeliveryList",
+    "next_cursor": {
+      "@id": "xrpay:next_cursor",
+      "@type": "xsd:string"
+    },
+    "Error": "xrpay:Error",
+    "error": {
+      "@id": "xrpay:error"
+    }
+  },
+  "@type": "schema:Dataset",
+  "schema:name": "XRPay API JSON-LD context",
+  "schema:description": "A JSON-LD @context for the objects XRPay's own API contract declares: one class per component schema, one property per declared field, typed from the contract. Derived by script (derive-json-ld.py, 2026-10-09) from openapi/xrpay-openapi.yml.",
+  "dcterms:created": "2026-10-09",
+  "dcterms:source": [
+    "openapi/xrpay-openapi.yml"
+  ]
+}

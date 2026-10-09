@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/xrpay/main/json-schema/xrpay-payroll-run-schema.json",
+  "title": "PayrollRun",
+  "description": "A single-currency payroll run. Each payment is indivisible and uses exactly one internal custody pool.",
+  "x-generated": "2026-10-09",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/xrpay-openapi.yml#/components/schemas/PayrollRun",
+  "type": "object",
+  "required": [
+    "id",
+    "object",
+    "livemode",
+    "currency",
+    "funding_source",
+    "status",
+    "total_recipients",
+    "salary_total",
+    "total_debit_amount",
+    "payments"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "object": {
+      "const": "payroll_run"
+    },
+    "livemode": {
+      "type": "boolean"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "funding_source": {
+      "const": "provider_balance"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "quoted",
+        "approved",
+        "processing",
+        "partially_completed",
+        "completed",
+        "failed",
+        "action_required",
+        "cancelled"
+      ]
+    },
+    "total_recipients": {
+      "type": "integer"
+    },
+    "salary_total": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "provider_fee_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "xrpay_fee_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "total_debit_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "quote_expires_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "payments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "$defs": {
+    "MoneyString": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]{1,18})?$",
+      "description": "An exact non-negative decimal amount. Never parse this as a binary floating-point number."
+    }
+  }
+}

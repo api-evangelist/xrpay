@@ -1,0 +1,152 @@
+generated: '2026-10-09'
+method: derived
+generator: derive-vocabulary.py
+source: openapi/xrpay-openapi.yml
+vocabulary:
+  name: XRPay Domain Vocabulary
+  description: 'Terms declared by XRPay''s own API contract: its resource groups, objects and enumerations, with the contract''s definitions.
+    Derived, not authored.'
+  version: '2026-10-09'
+  terms:
+  - term: PaymentIntentCreate
+    definition: 'Object declared by the contract with fields: amount_minor, currency, external_order_id, order_number, customer_email, location_id,
+      terminal_id, operator_id, integration_type, payment_method_types, collection_mode, payment_method_data. (7 more)'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PaymentIntentCreate
+  - term: LineItem
+    definition: 'Object declared by the contract with fields: name, quantity, unit_amount_minor, sku.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/LineItem
+  - term: DirectMobileMoneyPaymentMethodData
+    definition: 'Object declared by the contract with fields: type, mobile_money.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/DirectMobileMoneyPaymentMethodData
+  - term: PaymentIntent
+    definition: 'Object declared by the contract with fields: object, id, status, amount_minor, currency, external_order_id, order_number, customer_email,
+      location_id, terminal_id, operator_id, integration_type. (19 more)'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PaymentIntent
+  - term: TestBalanceCredit
+    definition: An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/TestBalanceCredit
+  - term: Settlement
+    definition: 'Object declared by the contract with fields: amount, currency, transaction_hash, destination_address.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/Settlement
+  - term: PaymentNextAction
+    definition: 'Object declared by the contract with fields: type, qr_data, qr_image, hosted_url, deep_link, message, confirmation_endpoint,
+      simulation_endpoint.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PaymentNextAction
+  - term: RefundCreate
+    definition: 'Object declared by the contract with fields: payment_intent_id, amount_minor, reason, external_refund_id.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/RefundCreate
+  - term: Refund
+    definition: 'Object declared by the contract with fields: object, id, payment_intent_id, status, amount_minor, currency, settlement, type,
+      reason, external_refund_id, next_action, livemode. (5 more)'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/Refund
+  - term: RefundList
+    definition: 'Object declared by the contract with fields: object, data, has_more.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/RefundList
+  - term: MoneyString
+    definition: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/MoneyString
+  - term: PayoutInstitution
+    definition: 'Object declared by the contract with fields: id, object, type, country, currency, code, name, status, test_mode.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayoutInstitution
+  - term: PayoutDestinationCreate
+    definition: 'Object declared by the contract with fields: institution_id, account_holder_name, account_number, label, make_default.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayoutDestinationCreate
+  - term: PayoutDestination
+    definition: 'Object declared by the contract with fields: id, object, type, country, currency, label, account_holder_name, last4, status,
+      is_default.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayoutDestination
+  - term: PayoutQuoteCreate
+    definition: 'Object declared by the contract with fields: destination_id, currency, amount_mode, amount, funding_source.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayoutQuoteCreate
+  - term: PayoutQuote
+    definition: 'Object declared by the contract with fields: id, object, livemode, simulated, test_mode_notice, funding_source, amount_mode,
+      currency, requested_amount, recipient_amount, withdrawal_fee_amount, total_debit_amount. (5 more)'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayoutQuote
+  - term: Payout
+    definition: One merchant-facing payout. Delivery IDs are opaque and never identify a provider.
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/Payout
+  - term: PayrollEmployeeCreate
+    definition: 'Object declared by the contract with fields: name, email, salary, currency.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayrollEmployeeCreate
+  - term: PayrollRun
+    definition: A single-currency payroll run. Each payment is indivisible and uses exactly one internal custody pool.
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/PayrollRun
+  - term: WebhookEvent
+    definition: The id/webhook_id remains stable across all attempts and replay operations.
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookEvent
+  - term: WebhookEndpointCreate
+    definition: 'Object declared by the contract with fields: name, url, events.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookEndpointCreate
+  - term: WebhookEndpoint
+    definition: 'Object declared by the contract with fields: object, id, name, url, events, secret, secret_revealed, is_active, livemode, created_at.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookEndpoint
+  - term: WebhookSecret
+    definition: 'Object declared by the contract with fields: object, webhook_id, secret, secret_revealed, livemode, rotated_at.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookSecret
+  - term: WebhookEndpointList
+    definition: 'Object declared by the contract with fields: object, data.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookEndpointList
+  - term: WebhookDelivery
+    definition: 'Object declared by the contract with fields: object, id, event_id, event_type, destination_type, destination_id, endpoint, status,
+      attempt_count, last_status_code, last_error, delivered_at. (2 more)'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookDelivery
+  - term: WebhookDeliveryList
+    definition: 'Object declared by the contract with fields: object, data, has_more, next_cursor.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/WebhookDeliveryList
+  - term: Error
+    definition: 'Object declared by the contract with fields: error.'
+    tags:
+    - Object
+    source: openapi/xrpay-openapi.yml#/components/schemas/Error

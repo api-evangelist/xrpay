@@ -1,0 +1,13 @@
+generated: '2026-10-09'
+method: derived
+source: openapi/xrpay-openapi.yml
+summary:
+  types:
+  - http
+schemes:
+- name: bearerAuth
+  type: http
+  scheme: bearer
+  description: Secret API key or XRPay Connect access token.
+  sources:
+  - openapi/xrpay-openapi.yml

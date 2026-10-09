@@ -1,0 +1,27 @@
+name: XRPay Plans
+generated: '2026-10-09'
+method: searched
+source: https://www.xrpay.it/pricing
+audience: business-product
+pricing_basis: tiered-subscription
+published: true
+currency: USD
+delivery:
+  delivery: managed
+note: 'Platform transaction fee on every plan: "0.1% per confirmed payment". API access is not included on Starter.'
+plans:
+- name: Starter
+  price: 0
+  price_text: $0.00 /month
+  features: ['Publish a five-product storefront', 'Sell by link or invoice']
+  limits: ['5 products · 10 confirmed payments', 'No API access, webhooks, or platform apps']
+- name: Growth
+  price: 29
+  price_text: $29.00 /month
+  features: ['API access · platform apps · 5 webhook endpoints']
+  limits: ['500 payments · Unlimited products · 5 seats']
+- name: Enterprise
+  price: 99
+  price_text: $99.00 /month
+  features: ['API access · platform apps · 25 webhooks · CRM connectors']
+  limits: ['Unlimited payments and seats · 25 webhooks']

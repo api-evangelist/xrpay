@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/xrpay/main/json-schema/xrpay-payout-schema.json",
+  "title": "Payout",
+  "description": "One merchant-facing payout. Delivery IDs are opaque and never identify a provider.",
+  "x-generated": "2026-10-09",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/xrpay-openapi.yml#/components/schemas/Payout",
+  "type": "object",
+  "required": [
+    "id",
+    "object",
+    "livemode",
+    "simulated",
+    "external_transfer_sent",
+    "status_message",
+    "destination_id",
+    "currency",
+    "recipient_amount",
+    "total_debit_amount",
+    "status",
+    "deliveries"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "object": {
+      "const": "payout"
+    },
+    "livemode": {
+      "type": "boolean"
+    },
+    "simulated": {
+      "type": "boolean",
+      "description": "True when the payout changes only isolated test balances."
+    },
+    "external_transfer_sent": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Always false for test payouts. Null for live payouts because delivery state is represented by status and deliveries."
+    },
+    "status_message": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "For test payouts, explicitly confirms that no external bank or Mobile Money transfer was sent. Null for live payouts."
+    },
+    "funding_source": {
+      "const": "provider_balance"
+    },
+    "destination_id": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "recipient_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "withdrawal_fee_amount": {
+      "$ref": "#/$defs/MoneyString",
+      "description": "Combined withdrawal fee."
+    },
+    "total_debit_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "processing",
+        "partially_completed",
+        "completed",
+        "failed",
+        "action_required"
+      ]
+    },
+    "failure_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "failure_message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "deliveries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "amount",
+          "currency",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/$defs/MoneyString"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "processing",
+              "completed",
+              "failed",
+              "action_required"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "MoneyString": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]{1,18})?$",
+      "description": "An exact non-negative decimal amount. Never parse this as a binary floating-point number."
+    }
+  }
+}

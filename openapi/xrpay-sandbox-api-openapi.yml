@@ -1,0 +1,423 @@
+openapi: 3.2.0
+info:
+  title: Xrpay Sandbox API
+  version: '2026-08-30'
+  description: 'Operations tagged Sandbox across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Sandbox
+paths:
+  /api/v1/payment-intents/{id}/simulate:
+    post:
+      tags:
+      - Sandbox
+      summary: Simulate a test payment outcome
+      description: Available only with test credentials. No external payment or ledger transaction is submitted. A successful local-currency simulation credits the connected business's isolated test payout balance exactly once; the PaymentIntent response describes that credit in test_balance_credit. Crypto-settlement simulations do not create a local-currency payout balance.
+      operationId: simulatePaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - outcome
+              properties:
+                outcome:
+                  enum:
+                  - succeeded
+                  - failed
+                  - expired
+      responses:
+        '200':
+          description: Simulated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/refunds/{id}/simulate:
+    post:
+      tags:
+      - Sandbox
+      summary: Simulate a test refund outcome
+      operationId: simulateRefund
+      x-required-scope: refund.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - outcome
+              properties:
+                outcome:
+                  enum:
+                  - completed
+                  - failed
+      responses:
+        '200':
+          description: Simulated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+components:
+  schemas:
+    PaymentIntent:
+      type: object
+      required:
+      - object
+      - id
+      - status
+      - amount_minor
+      - currency
+      - external_order_id
+      - livemode
+      - sandbox_simulated
+      - test_balance_credit
+      - created_at
+      - expires_at
+      properties:
+        object:
+          const: payment_intent
+        id:
+          type: string
+        status:
+          enum:
+          - requires_customer_action
+          - processing
+          - succeeded
+          - failed
+          - expired
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        external_order_id:
+          type: string
+        order_number:
+          type:
+          - string
+          - 'null'
+        customer_email:
+          type:
+          - string
+          - 'null'
+        location_id:
+          type:
+          - string
+          - 'null'
+        terminal_id:
+          type:
+          - string
+          - 'null'
+        operator_id:
+          type:
+          - string
+          - 'null'
+        integration_type:
+          type: string
+        metadata:
+          type:
+          - object
+          - 'null'
+        line_items:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        payment_method_types:
+          type:
+          - array
+          - 'null'
+          items:
+            enum:
+            - card
+            - mobile_money
+            - bank
+            - xrp
+            - rlusd
+            - crypto
+        payment_method:
+          type:
+          - string
+          - 'null'
+        collection_mode:
+          enum:
+          - hosted
+          - direct
+        mobile_money:
+          anyOf:
+          - type: object
+            required:
+            - country
+            - network
+            - phone_last4
+            properties:
+              country:
+                type:
+                - string
+                - 'null'
+              network:
+                type:
+                - string
+                - 'null'
+              phone_last4:
+                type:
+                - string
+                - 'null'
+          - type: 'null'
+        refunded_amount_minor:
+          type: integer
+          minimum: 0
+        failure_code:
+          type:
+          - string
+          - 'null'
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        next_action:
+          anyOf:
+          - $ref: '#/components/schemas/PaymentNextAction'
+          - type: 'null'
+        estimated_fees:
+          anyOf:
+          - type: object
+            properties:
+              collection_fee_minor:
+                type:
+                - integer
+                - 'null'
+              merchant_net_minor:
+                type:
+                - integer
+                - 'null'
+          - type: 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        test_balance_credit:
+          anyOf:
+          - $ref: '#/components/schemas/TestBalanceCredit'
+          - type: 'null'
+          description: Present after a successful local-currency test simulation. Null for live intents, unsuccessful simulations, and crypto-settlement simulations.
+        api_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        canceled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    Settlement:
+      type: object
+      properties:
+        amount:
+          type: string
+        currency:
+          type: string
+        transaction_hash:
+          type:
+          - string
+          - 'null'
+        destination_address:
+          type:
+          - string
+          - 'null'
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+    PaymentNextAction:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          enum:
+          - display_qr
+          - approve_on_phone
+          - submit_otp
+          - wait_for_confirmation
+          - simulate_payment
+        qr_data:
+          type: string
+        qr_image:
+          type: string
+        hosted_url:
+          type: string
+          format: uri
+        deep_link:
+          type: string
+        message:
+          type: string
+        confirmation_endpoint:
+          type: string
+        simulation_endpoint:
+          type: string
+    Refund:
+      type: object
+      required:
+      - object
+      - id
+      - payment_intent_id
+      - status
+      - amount_minor
+      - currency
+      properties:
+        object:
+          const: refund
+        id:
+          type: string
+        payment_intent_id:
+          type: string
+        status:
+          enum:
+          - pending
+          - requires_action
+          - processing
+          - completed
+          - failed
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        type:
+          enum:
+          - full
+          - partial
+        reason:
+          type:
+          - string
+          - 'null'
+        external_refund_id:
+          type:
+          - string
+          - 'null'
+        next_action:
+          type:
+          - object
+          - 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        failed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    TestBalanceCredit:
+      type: object
+      description: An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.
+      required:
+      - credited
+      - idempotent_replay
+      - amount
+      - currency
+      - livemode
+      - simulated
+      - external_money_moved
+      properties:
+        credited:
+          const: true
+        idempotent_replay:
+          type: boolean
+          description: True when the same successful simulation was replayed and no second balance entry was created.
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+        livemode:
+          const: false
+        simulated:
+          const: true
+        external_money_moved:
+          const: false
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+x-refined-from:
+- xrpay-openapi.json
+- xrpay-openapi.yml

@@ -1,0 +1,25 @@
+name: XRPay Conventions
+generated: '2026-10-09'
+method: derived
+source: https://api.xrpay.it/openapi.json
+auth:
+  style: 'HTTP bearer: "Secret API key or XRPay Connect access token."'
+idempotency:
+  coverage: partial
+  header: Idempotency-Key (components.parameters.IdempotencyKey)
+  scope: [createPaymentIntent, createRefund, createPayoutDestination, deletePayoutDestination, createPayout, createPayrollEmployee, updatePayrollEmployee, deletePayrollEmployee, createPayrollDestinationInvitation, createPayrollRun, createPayrollRunItem, approvePayrollRun, executePayrollRun]
+  note: Not declared on cancelPaymentIntent, confirmPaymentIntent, createPayoutQuote, webhook writes or connect revoke.
+reversibility:
+  - surface: payment intents
+    operation: cancelPaymentIntent
+    grade: documented
+  - surface: confirmed payments
+    operation: createRefund
+    grade: documented
+    note: 'Trust center: "Confirmed on-chain transfers are irreversible; a refund is a separate outbound transfer." No refund window stated.'
+    docs: https://www.xrpay.it/trust
+  - surface: webhook secret / connect
+    operation: revokeConnectedAccountConnection
+    grade: documented
+dry_run:
+  operations: [simulatePaymentIntent, simulateRefund, createPayoutQuote, quotePayrollRun]

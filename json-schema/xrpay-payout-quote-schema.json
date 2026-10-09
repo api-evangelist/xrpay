@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/xrpay/main/json-schema/xrpay-payout-quote-schema.json",
+  "title": "PayoutQuote",
+  "x-generated": "2026-10-09",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/xrpay-openapi.yml#/components/schemas/PayoutQuote",
+  "type": "object",
+  "required": [
+    "id",
+    "object",
+    "livemode",
+    "simulated",
+    "test_mode_notice",
+    "funding_source",
+    "amount_mode",
+    "currency",
+    "recipient_amount",
+    "total_debit_amount",
+    "transfer_count",
+    "expires_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "object": {
+      "const": "payout_quote"
+    },
+    "livemode": {
+      "type": "boolean"
+    },
+    "simulated": {
+      "type": "boolean",
+      "description": "True when the quote uses an isolated test balance."
+    },
+    "test_mode_notice": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "For test quotes, confirms that execution will not send money to a bank or Mobile Money wallet. Null for live quotes."
+    },
+    "funding_source": {
+      "const": "provider_balance"
+    },
+    "amount_mode": {
+      "enum": [
+        "exact",
+        "maximum"
+      ]
+    },
+    "currency": {
+      "type": "string"
+    },
+    "requested_amount": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MoneyString"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recipient_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "withdrawal_fee_amount": {
+      "$ref": "#/$defs/MoneyString",
+      "description": "Combined withdrawal fee."
+    },
+    "total_debit_amount": {
+      "$ref": "#/$defs/MoneyString"
+    },
+    "transfer_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "estimated_delivery_seconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "description": "Aggregate delivery estimate for the slowest internal transfer part, when every part has an estimate."
+    },
+    "can_execute": {
+      "type": "boolean"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "MoneyString": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]{1,18})?$",
+      "description": "An exact non-negative decimal amount. Never parse this as a binary floating-point number."
+    }
+  }
+}

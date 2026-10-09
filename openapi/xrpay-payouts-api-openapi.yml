@@ -1,0 +1,592 @@
+openapi: 3.2.0
+info:
+  title: Xrpay Payouts API
+  version: '2026-08-30'
+  description: 'Operations tagged Payouts across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Payouts
+paths:
+  /api/v1/balances:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve consolidated payout balances
+      description: Returns available, retained minimum, amount above that minimum, reserved, in-flight, pending, and destination-specific withdrawable decimal amounts without revealing custody providers. Test credentials return only isolated virtual test balances; live and test balances never mix.
+      operationId: retrievePayoutBalances
+      x-required-scope: payout.read
+      parameters:
+      - name: destination_id
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Consolidated balances
+        '401':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payout-capabilities:
+    get:
+      tags:
+      - Payouts
+      summary: List payout corridors and aggregate limits
+      operationId: listPayoutCapabilities
+      x-required-scope: payout.read
+      parameters:
+      - name: country
+        in: query
+        schema:
+          type: string
+      - name: currency
+        in: query
+        schema:
+          type: string
+      - name: destination_type
+        in: query
+        schema:
+          enum:
+          - bank
+          - mobile_money
+      responses:
+        '200':
+          description: Provider-neutral payout capabilities
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payout-institutions:
+    get:
+      tags:
+      - Payouts
+      summary: List canonical banks and Mobile Money operators
+      description: With a test API key, country=GH, currency=GHS, and type=bank or type=mobile_money returns the matching XRPay simulated destination. Its test_mode field is true; no real bank or Mobile Money operator is implied or contacted. Live keys never return simulator institutions.
+      operationId: listPayoutInstitutions
+      x-required-scope: payout.read
+      parameters:
+      - name: country
+        in: query
+        schema:
+          type: string
+      - name: currency
+        in: query
+        schema:
+          type: string
+      - name: type
+        in: query
+        schema:
+          enum:
+          - bank
+          - mobile_money
+      responses:
+        '200':
+          description: Canonical institution list
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - object
+                - data
+                properties:
+                  object:
+                    const: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayoutInstitution'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payout-destinations:
+    get:
+      tags:
+      - Payouts
+      summary: List masked payout destinations
+      operationId: listPayoutDestinations
+      x-required-scope: payout.read
+      responses:
+        '200':
+          description: Payout destination list
+    post:
+      tags:
+      - Payouts
+      summary: Create or reuse a payout destination
+      description: Creates setup data only and does not move funds. Requires a stable Idempotency-Key.
+      operationId: createPayoutDestination
+      x-required-scope: payout.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutDestinationCreate'
+      responses:
+        '201':
+          description: Destination created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutDestination'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payout-destinations/{id}:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve a masked payout destination
+      operationId: retrievePayoutDestination
+      x-required-scope: payout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payout destination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutDestination'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Payouts
+      summary: Deactivate a payout destination
+      operationId: deletePayoutDestination
+      x-required-scope: payout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Destination deactivated
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payout-quotes:
+    post:
+      tags:
+      - Payouts
+      summary: Quote an exact-net or maximum-balance payout
+      description: Creates an expiring quote without moving funds. Payout-balance quotes subtract the account's retained minimum before calculating withdrawable funds. The response aggregates internal custody legs and exposes fees and transfer count, never provider names. With test credentials, simulated is true and test_mode_notice states that execution will not send external money.
+      operationId: createPayoutQuote
+      x-required-scope: payout.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutQuoteCreate'
+      responses:
+        '201':
+          description: Expiring payout quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutQuote'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payouts:
+    get:
+      tags:
+      - Payouts
+      summary: List aggregate merchant payouts
+      operationId: listPayouts
+      x-required-scope: payout.read
+      responses:
+        '200':
+          description: Payout list
+    post:
+      tags:
+      - Payouts
+      summary: Atomically reserve and execute a quoted payout
+      description: 'With live credentials, this is a money-moving operation: XRPay validates the quote, reserves the total debit, and submits the bank or Mobile Money payout. With test credentials, XRPay changes only isolated virtual balances, contacts no external financial network, and returns external_transfer_sent=false.'
+      operationId: createPayout
+      x-required-scope: payout.execute
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - quote_id
+              properties:
+                quote_id:
+                  type: string
+      responses:
+        '201':
+          description: Payout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '200':
+          description: Idempotent replay
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payouts/{id}:
+    get:
+      tags:
+      - Payouts
+      summary: Retrieve aggregate payout and opaque delivery parts
+      operationId: retrievePayout
+      x-required-scope: payout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '404':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+components:
+  schemas:
+    PayoutQuoteCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - destination_id
+      - currency
+      - amount_mode
+      properties:
+        destination_id:
+          type: string
+        currency:
+          type: string
+        amount_mode:
+          enum:
+          - exact
+          - maximum
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        funding_source:
+          const: provider_balance
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+    PayoutDestinationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - institution_id
+      - account_holder_name
+      - account_number
+      properties:
+        institution_id:
+          type: string
+        account_holder_name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        account_number:
+          type: string
+          minLength: 4
+          maxLength: 100
+        label:
+          type: string
+          maxLength: 200
+        make_default:
+          type: boolean
+    PayoutInstitution:
+      type: object
+      required:
+      - id
+      - object
+      - type
+      - country
+      - currency
+      - code
+      - name
+      - status
+      - test_mode
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_institution
+        type:
+          enum:
+          - bank
+          - mobile_money
+        country:
+          type: string
+        currency:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        test_mode:
+          type: boolean
+          description: True only for an XRPay simulated destination. It does not identify a real bank or Mobile Money operator.
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    PayoutQuote:
+      type: object
+      required:
+      - id
+      - object
+      - livemode
+      - simulated
+      - test_mode_notice
+      - funding_source
+      - amount_mode
+      - currency
+      - recipient_amount
+      - total_debit_amount
+      - transfer_count
+      - expires_at
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_quote
+        livemode:
+          type: boolean
+        simulated:
+          type: boolean
+          description: True when the quote uses an isolated test balance.
+        test_mode_notice:
+          type:
+          - string
+          - 'null'
+          description: For test quotes, confirms that execution will not send money to a bank or Mobile Money wallet. Null for live quotes.
+        funding_source:
+          const: provider_balance
+        amount_mode:
+          enum:
+          - exact
+          - maximum
+        currency:
+          type: string
+        requested_amount:
+          anyOf:
+          - $ref: '#/components/schemas/MoneyString'
+          - type: 'null'
+        recipient_amount:
+          $ref: '#/components/schemas/MoneyString'
+        withdrawal_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+          description: Combined withdrawal fee.
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        transfer_count:
+          type: integer
+          minimum: 1
+        estimated_delivery_seconds:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Aggregate delivery estimate for the slowest internal transfer part, when every part has an estimate.
+        can_execute:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: object
+        expires_at:
+          type: string
+          format: date-time
+    PayoutDestination:
+      type: object
+      required:
+      - id
+      - object
+      - type
+      - country
+      - currency
+      - last4
+      - status
+      properties:
+        id:
+          type: string
+        object:
+          const: payout_destination
+        type:
+          enum:
+          - bank
+          - mobile_money
+        country:
+          type: string
+        currency:
+          type: string
+        label:
+          type:
+          - string
+          - 'null'
+        account_holder_name:
+          type:
+          - string
+          - 'null'
+        last4:
+          type: string
+        status:
+          enum:
+          - pending
+          - verified
+          - inactive
+        is_default:
+          type: boolean
+    Payout:
+      type: object
+      description: One merchant-facing payout. Delivery IDs are opaque and never identify a provider.
+      required:
+      - id
+      - object
+      - livemode
+      - simulated
+      - external_transfer_sent
+      - status_message
+      - destination_id
+      - currency
+      - recipient_amount
+      - total_debit_amount
+      - status
+      - deliveries
+      properties:
+        id:
+          type: string
+        object:
+          const: payout
+        livemode:
+          type: boolean
+        simulated:
+          type: boolean
+          description: True when the payout changes only isolated test balances.
+        external_transfer_sent:
+          type:
+          - boolean
+          - 'null'
+          description: Always false for test payouts. Null for live payouts because delivery state is represented by status and deliveries.
+        status_message:
+          type:
+          - string
+          - 'null'
+          description: For test payouts, explicitly confirms that no external bank or Mobile Money transfer was sent. Null for live payouts.
+        funding_source:
+          const: provider_balance
+        destination_id:
+          type: string
+        currency:
+          type: string
+        recipient_amount:
+          $ref: '#/components/schemas/MoneyString'
+        withdrawal_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+          description: Combined withdrawal fee.
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        status:
+          enum:
+          - pending
+          - processing
+          - partially_completed
+          - completed
+          - failed
+          - action_required
+        failure_code:
+          type:
+          - string
+          - 'null'
+        failure_message:
+          type:
+          - string
+          - 'null'
+        deliveries:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - amount
+            - currency
+            - status
+            properties:
+              id:
+                type: string
+              amount:
+                $ref: '#/components/schemas/MoneyString'
+              currency:
+                type: string
+              status:
+                enum:
+                - processing
+                - completed
+                - failed
+                - action_required
+              reference:
+                type:
+                - string
+                - 'null'
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+x-refined-from:
+- xrpay-openapi.json
+- xrpay-openapi.yml

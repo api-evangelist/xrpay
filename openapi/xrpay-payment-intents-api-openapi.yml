@@ -1,0 +1,605 @@
+openapi: 3.2.0
+info:
+  title: Xrpay Payment intents API
+  version: '2026-08-30'
+  description: 'Operations tagged Payment intents across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Payment Intents
+paths:
+  /api/v1/capabilities:
+    get:
+      tags:
+      - Payment Intents
+      summary: List the authenticated merchant's ready payment methods and settlement…
+      operationId: retrieveAccountCapabilities
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Rail-derived merchant capabilities for direct keys or connected-account tokens
+        '401':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payment-intents:
+    get:
+      tags:
+      - Payment Intents
+      summary: List payment intents
+      operationId: listPaymentIntents
+      x-required-scope: checkout.read
+      parameters:
+      - name: status
+        in: query
+        schema:
+          enum:
+          - requires_customer_action
+          - processing
+          - succeeded
+          - failed
+          - expired
+          - canceled
+      - name: external_order_id
+        in: query
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          pattern: ^dlv_
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+      responses:
+        '200':
+          description: Payment intent list
+    post:
+      tags:
+      - Payment Intents
+      summary: Create a payment intent
+      operationId: createPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIntentCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '200':
+          description: Idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payment-intents/{id}:
+    get:
+      tags:
+      - Payment Intents
+      summary: Retrieve a payment intent
+      operationId: retrievePaymentIntent
+      x-required-scope: checkout.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payment intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '404':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payment-intents/{id}/cancel:
+    post:
+      tags:
+      - Payment Intents
+      summary: Cancel an unpaid payment intent
+      operationId: cancelPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payment-intents/{id}/confirm:
+    post:
+      tags:
+      - Payment Intents
+      summary: Submit a Mobile Money one-time code
+      description: Use only when a direct Mobile Money intent returns next_action.type=submit_otp. Most networks instead return approve_on_phone and require no confirmation API call.
+      operationId: confirmPaymentIntent
+      x-required-scope: checkout.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - otp
+              properties:
+                otp:
+                  type: string
+                  pattern: ^[0-9]{4,10}$
+      responses:
+        '200':
+          description: One-time code accepted; payment confirmation remains asynchronous
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+components:
+  schemas:
+    PaymentIntent:
+      type: object
+      required:
+      - object
+      - id
+      - status
+      - amount_minor
+      - currency
+      - external_order_id
+      - livemode
+      - sandbox_simulated
+      - test_balance_credit
+      - created_at
+      - expires_at
+      properties:
+        object:
+          const: payment_intent
+        id:
+          type: string
+        status:
+          enum:
+          - requires_customer_action
+          - processing
+          - succeeded
+          - failed
+          - expired
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        external_order_id:
+          type: string
+        order_number:
+          type:
+          - string
+          - 'null'
+        customer_email:
+          type:
+          - string
+          - 'null'
+        location_id:
+          type:
+          - string
+          - 'null'
+        terminal_id:
+          type:
+          - string
+          - 'null'
+        operator_id:
+          type:
+          - string
+          - 'null'
+        integration_type:
+          type: string
+        metadata:
+          type:
+          - object
+          - 'null'
+        line_items:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        payment_method_types:
+          type:
+          - array
+          - 'null'
+          items:
+            enum:
+            - card
+            - mobile_money
+            - bank
+            - xrp
+            - rlusd
+            - crypto
+        payment_method:
+          type:
+          - string
+          - 'null'
+        collection_mode:
+          enum:
+          - hosted
+          - direct
+        mobile_money:
+          anyOf:
+          - type: object
+            required:
+            - country
+            - network
+            - phone_last4
+            properties:
+              country:
+                type:
+                - string
+                - 'null'
+              network:
+                type:
+                - string
+                - 'null'
+              phone_last4:
+                type:
+                - string
+                - 'null'
+          - type: 'null'
+        refunded_amount_minor:
+          type: integer
+          minimum: 0
+        failure_code:
+          type:
+          - string
+          - 'null'
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        next_action:
+          anyOf:
+          - $ref: '#/components/schemas/PaymentNextAction'
+          - type: 'null'
+        estimated_fees:
+          anyOf:
+          - type: object
+            properties:
+              collection_fee_minor:
+                type:
+                - integer
+                - 'null'
+              merchant_net_minor:
+                type:
+                - integer
+                - 'null'
+          - type: 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        test_balance_credit:
+          anyOf:
+          - $ref: '#/components/schemas/TestBalanceCredit'
+          - type: 'null'
+          description: Present after a successful local-currency test simulation. Null for live intents, unsuccessful simulations, and crypto-settlement simulations.
+        api_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        canceled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    Settlement:
+      type: object
+      properties:
+        amount:
+          type: string
+        currency:
+          type: string
+        transaction_hash:
+          type:
+          - string
+          - 'null'
+        destination_address:
+          type:
+          - string
+          - 'null'
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+    PaymentIntentCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - amount_minor
+      - currency
+      - external_order_id
+      properties:
+        amount_minor:
+          type: integer
+          minimum: 1
+          description: Fiat amount in the currency's smallest unit.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples:
+          - USD
+        external_order_id:
+          type: string
+          maxLength: 200
+        order_number:
+          type: string
+          maxLength: 200
+        customer_email:
+          type: string
+          format: email
+        location_id:
+          type: string
+          maxLength: 200
+        terminal_id:
+          type: string
+          maxLength: 200
+        operator_id:
+          type: string
+          maxLength: 200
+        integration_type:
+          enum:
+          - pos
+          - ecommerce
+          - invoice
+          - payment_link
+          - api
+          default: pos
+        payment_method_types:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            enum:
+            - card
+            - mobile_money
+            - bank
+            - xrp
+            - rlusd
+            - crypto
+          description: Optional allow-list enforced by both the hosted checkout UI and server actions.
+        collection_mode:
+          enum:
+          - hosted
+          - direct
+          default: hosted
+          description: Use direct with mobile_money to send the approval prompt to the customer's phone without creating a hosted checkout page.
+        payment_method_data:
+          anyOf:
+          - $ref: '#/components/schemas/DirectMobileMoneyPaymentMethodData'
+          - type: 'null'
+          description: Required only for direct Mobile Money collection. The full phone number is used for submission but is never returned.
+        settlement_currency:
+          enum:
+          - XRP
+          - RLUSD
+        metadata:
+          type: object
+          maxProperties: 100
+        line_items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/LineItem'
+        success_url:
+          type: string
+          format: uri
+        cancel_url:
+          type: string
+          format: uri
+        expires_in:
+          type: integer
+          minimum: 60
+          maximum: 2592000
+          description: Relative expiry in seconds. Mutually exclusive with expires_at.
+        expires_at:
+          type: string
+          format: date-time
+          description: Absolute expiry at least 60 seconds and no more than 30 days ahead. Mutually exclusive with expires_in.
+    PaymentNextAction:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          enum:
+          - display_qr
+          - approve_on_phone
+          - submit_otp
+          - wait_for_confirmation
+          - simulate_payment
+        qr_data:
+          type: string
+        qr_image:
+          type: string
+        hosted_url:
+          type: string
+          format: uri
+        deep_link:
+          type: string
+        message:
+          type: string
+        confirmation_endpoint:
+          type: string
+        simulation_endpoint:
+          type: string
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    DirectMobileMoneyPaymentMethodData:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - mobile_money
+      properties:
+        type:
+          const: mobile_money
+        mobile_money:
+          type: object
+          additionalProperties: false
+          required:
+          - country
+          - network
+          - phone
+          properties:
+            country:
+              type: string
+              minLength: 2
+              maxLength: 2
+              examples:
+              - GH
+            network:
+              type: string
+              examples:
+              - mtn
+            phone:
+              type: string
+              description: Customer Mobile Money number. E.164 with country code is recommended.
+              examples:
+              - '+233599233665'
+    TestBalanceCredit:
+      type: object
+      description: An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.
+      required:
+      - credited
+      - idempotent_replay
+      - amount
+      - currency
+      - livemode
+      - simulated
+      - external_money_moved
+      properties:
+        credited:
+          const: true
+        idempotent_replay:
+          type: boolean
+          description: True when the same successful simulation was replayed and no second balance entry was created.
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+        livemode:
+          const: false
+        simulated:
+          const: true
+        external_money_moved:
+          const: false
+    LineItem:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+        unit_amount_minor:
+          type: integer
+          minimum: 0
+        sku:
+          type: string
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+x-refined-from:
+- xrpay-openapi.json
+- xrpay-openapi.yml

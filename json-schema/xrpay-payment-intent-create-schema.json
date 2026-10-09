@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/xrpay/main/json-schema/xrpay-payment-intent-create-schema.json",
+  "title": "PaymentIntentCreate",
+  "x-generated": "2026-10-09",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/xrpay-openapi.yml#/components/schemas/PaymentIntentCreate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "amount_minor",
+    "currency",
+    "external_order_id"
+  ],
+  "properties": {
+    "amount_minor": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Fiat amount in the currency's smallest unit."
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "external_order_id": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "order_number": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "customer_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "location_id": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "terminal_id": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "operator_id": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "integration_type": {
+      "enum": [
+        "pos",
+        "ecommerce",
+        "invoice",
+        "payment_link",
+        "api"
+      ],
+      "default": "pos"
+    },
+    "payment_method_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "card",
+          "mobile_money",
+          "bank",
+          "xrp",
+          "rlusd",
+          "crypto"
+        ]
+      },
+      "description": "Optional allow-list enforced by both the hosted checkout UI and server actions."
+    },
+    "collection_mode": {
+      "enum": [
+        "hosted",
+        "direct"
+      ],
+      "default": "hosted",
+      "description": "Use direct with mobile_money to send the approval prompt to the customer's phone without creating a hosted checkout page."
+    },
+    "payment_method_data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DirectMobileMoneyPaymentMethodData"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Required only for direct Mobile Money collection. The full phone number is used for submission but is never returned."
+    },
+    "settlement_currency": {
+      "enum": [
+        "XRP",
+        "RLUSD"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "maxProperties": 100
+    },
+    "line_items": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/LineItem"
+      }
+    },
+    "success_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "cancel_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "expires_in": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 2592000,
+      "description": "Relative expiry in seconds. Mutually exclusive with expires_at."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Absolute expiry at least 60 seconds and no more than 30 days ahead. Mutually exclusive with expires_in."
+    }
+  },
+  "$defs": {
+    "DirectMobileMoneyPaymentMethodData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "mobile_money"
+      ],
+      "properties": {
+        "type": {
+          "const": "mobile_money"
+        },
+        "mobile_money": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "country",
+            "network",
+            "phone"
+          ],
+          "properties": {
+            "country": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "network": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string",
+              "description": "Customer Mobile Money number. E.164 with country code is recommended."
+            }
+          }
+        }
+      }
+    },
+    "LineItem": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "unit_amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sku": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

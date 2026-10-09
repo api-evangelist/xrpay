@@ -1,0 +1,402 @@
+openapi: 3.2.0
+info:
+  title: Xrpay Payroll API
+  version: '2026-08-30'
+  description: 'Operations tagged Payroll across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Payroll
+paths:
+  /api/v1/payroll/employees:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll employees
+      operationId: listPayrollEmployees
+      x-required-scope: payroll.read
+      responses:
+        '200':
+          description: Employee list
+    post:
+      tags:
+      - Payroll
+      summary: Create an employee with a fixed local-fiat salary
+      operationId: createPayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayrollEmployeeCreate'
+      responses:
+        '201':
+          description: Employee created
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/employees/{id}:
+    get:
+      tags:
+      - Payroll
+      summary: Retrieve a payroll employee
+      operationId: retrievePayrollEmployee
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Employee
+    patch:
+      tags:
+      - Payroll
+      summary: Update salary or employee state
+      operationId: updatePayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 160
+                salary:
+                  $ref: '#/components/schemas/MoneyString'
+                status:
+                  enum:
+                  - active
+                  - inactive
+      responses:
+        '200':
+          description: Updated employee
+    delete:
+      tags:
+      - Payroll
+      summary: Deactivate a payroll employee
+      operationId: deletePayrollEmployee
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Employee deactivated
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/employees/{id}/invitations:
+    post:
+      tags:
+      - Payroll
+      summary: Send a signed destination setup invitation
+      operationId: createPayrollDestinationInvitation
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Invitation sent
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll runs
+      operationId: listPayrollRuns
+      x-required-scope: payroll.read
+      responses:
+        '200':
+          description: Payroll run list
+    post:
+      tags:
+      - Payroll
+      summary: Create a provider-balance payroll run
+      operationId: createPayrollRun
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - currency
+              properties:
+                currency:
+                  type: string
+                funding_source:
+                  const: provider_balance
+                employee_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Payroll run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+        '200':
+          description: Idempotent replay
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs/{id}:
+    get:
+      tags:
+      - Payroll
+      summary: Retrieve payroll run and employee payment states
+      operationId: retrievePayrollRun
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Payroll run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs/{id}/items:
+    get:
+      tags:
+      - Payroll
+      summary: List payroll run items
+      operationId: listPayrollRunItems
+      x-required-scope: payroll.read
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Run items
+    post:
+      tags:
+      - Payroll
+      summary: Add one employee salary to a pending run
+      operationId: createPayrollRunItem
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - employee_id
+              properties:
+                employee_id:
+                  type: string
+      responses:
+        '201':
+          description: Run item created
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs/{id}/quote:
+    post:
+      tags:
+      - Payroll
+      summary: Allocate each whole salary to one eligible custody pool
+      operationId: quotePayrollRun
+      x-required-scope: payroll.write
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Quoted payroll run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRun'
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs/{id}/approve:
+    post:
+      tags:
+      - Payroll
+      summary: Approve the quoted total debit
+      description: Records approval for the quoted run but does not submit employee transfers. The separate execute operation moves funds.
+      operationId: approvePayrollRun
+      x-required-scope: payroll.execute
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Approved payroll run
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/payroll/runs/{id}/execute:
+    post:
+      tags:
+      - Payroll
+      summary: Atomically reserve and submit every employee payout
+      description: Money-moving operation. Reserves the approved total debit and submits every eligible employee payout.
+      operationId: executePayrollRun
+      x-required-scope: payroll.execute
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Processing or terminal payroll run
+        '409':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+    PayrollRun:
+      type: object
+      description: A single-currency payroll run. Each payment is indivisible and uses exactly one internal custody pool.
+      required:
+      - id
+      - object
+      - livemode
+      - currency
+      - funding_source
+      - status
+      - total_recipients
+      - salary_total
+      - total_debit_amount
+      - payments
+      properties:
+        id:
+          type: string
+        object:
+          const: payroll_run
+        livemode:
+          type: boolean
+        currency:
+          type: string
+        funding_source:
+          const: provider_balance
+        status:
+          enum:
+          - pending
+          - quoted
+          - approved
+          - processing
+          - partially_completed
+          - completed
+          - failed
+          - action_required
+          - cancelled
+        total_recipients:
+          type: integer
+        salary_total:
+          $ref: '#/components/schemas/MoneyString'
+        provider_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+        xrpay_fee_amount:
+          $ref: '#/components/schemas/MoneyString'
+        total_debit_amount:
+          $ref: '#/components/schemas/MoneyString'
+        quote_expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        payments:
+          type: array
+          items:
+            type: object
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    PayrollEmployeeCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - email
+      - salary
+      - currency
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        email:
+          type: string
+          format: email
+        salary:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+x-refined-from:
+- xrpay-openapi.json
+- xrpay-openapi.yml

@@ -1,0 +1,90 @@
+openapi: 3.2.0
+info:
+  title: Xrpay Connected account API
+  version: '2026-08-30'
+  description: 'Operations tagged Connected account across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+servers:
+- url: https://api.xrpay.it
+security:
+- bearerAuth: []
+tags:
+- name: Connected account
+paths:
+  /api/v1/connect/account:
+    get:
+      tags:
+      - Connected account
+      summary: Retrieve the merchant connected to this access token
+      operationId: retrieveConnectedAccount
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Connected merchant account
+        '401':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/connect/capabilities:
+    get:
+      tags:
+      - Connected account
+      summary: List ready payment methods and settlement destinations
+      operationId: retrieveConnectedAccountCapabilities
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Rail-derived connected merchant capabilities
+        '401':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+  /api/v1/connect/revoke:
+    post:
+      tags:
+      - Connected account
+      summary: Revoke the current platform connection
+      operationId: revokeConnectedAccountConnection
+      x-required-scope: account.read
+      responses:
+        '200':
+          description: Connection revoked
+        '401':
+          $ref: '#/components/responses/Error'
+    servers:
+    - url: https://api.xrpay.it
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Secret API key or XRPay Connect access token.
+x-refined-from:
+- xrpay-openapi.json
+- xrpay-openapi.yml
