@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Webhooks API
+  title: XRPay Cashier Webhooks API
   version: '2026-08-30'
-  description: 'Operations tagged Webhooks across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -69,8 +69,6 @@ paths:
           description: Endpoint deleted
         '404':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/webhook-deliveries:
     get:
       tags:
@@ -136,8 +134,6 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/webhooks/{id}/secret:
     post:
       tags:
@@ -157,10 +153,115 @@ paths:
                 $ref: '#/components/schemas/WebhookSecret'
         '404':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
+    WebhookEndpointList:
+      type: object
+      required:
+      - object
+      - data
+      properties:
+        object:
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
+    WebhookEndpointCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - url
+      - events
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        url:
+          type: string
+          format: uri
+          description: A public HTTPS endpoint.
+        events:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            enum:
+            - payment.created
+            - payment.processing
+            - payment.confirmed
+            - payment.failed
+            - payment.canceled
+            - payment.refunded
+            - payment.swept
+            - refund.created
+            - refund.completed
+            - refund.failed
+            - payout.created
+            - payout.processing
+            - payout.action_required
+            - payout.partially_completed
+            - payout.completed
+            - payout.failed
+            - payroll.run.created
+            - payroll.run.approved
+            - payroll.run.processing
+            - payroll.run.action_required
+            - payroll.run.partially_completed
+            - payroll.run.completed
+            - payroll.run.failed
+            - payroll.payment.completed
+            - payroll.payment.failed
+            - payroll.payment.action_required
+            - checkout.session.completed
+            - checkout.session.expired
+            - escrow.created
+            - escrow.released
+            - escrow.cancelled
+            - invoice.created
+            - invoice.sent
+            - invoice.paid
+            - b2b.order.created
+            - b2b.order.paid
+            - b2b.order.shipped
+    WebhookSecret:
+      type: object
+      required:
+      - object
+      - webhook_id
+      - secret
+      - secret_revealed
+      - livemode
+      - rotated_at
+      properties:
+        object:
+          const: webhook_secret
+        webhook_id:
+          type: string
+        secret:
+          type: string
+          pattern: ^whsec_
+        secret_revealed:
+          const: true
+        livemode:
+          type: boolean
+        rotated_at:
+          type: string
+          format: date-time
     WebhookDelivery:
       type: object
       required:
@@ -223,58 +324,6 @@ components:
         updated_at:
           type: string
           format: date-time
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: object
-          required:
-          - type
-          - message
-          properties:
-            type:
-              type: string
-            code:
-              type:
-              - string
-              - 'null'
-            message:
-              type: string
-    WebhookDeliveryList:
-      type: object
-      required:
-      - object
-      - data
-      - has_more
-      - next_cursor
-      properties:
-        object:
-          const: list
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/WebhookDelivery'
-        has_more:
-          type: boolean
-        next_cursor:
-          type:
-          - string
-          - 'null'
-          pattern: ^dlv_
-    WebhookEndpointList:
-      type: object
-      required:
-      - object
-      - data
-      properties:
-        object:
-          const: list
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/WebhookEndpoint'
     WebhookEndpoint:
       type: object
       required:
@@ -310,106 +359,48 @@ components:
         created_at:
           type: string
           format: date-time
-    WebhookSecret:
+    WebhookDeliveryList:
       type: object
       required:
       - object
-      - webhook_id
-      - secret
-      - secret_revealed
-      - livemode
-      - rotated_at
+      - data
+      - has_more
+      - next_cursor
       properties:
         object:
-          const: webhook_secret
-        webhook_id:
-          type: string
-        secret:
-          type: string
-          pattern: ^whsec_
-        secret_revealed:
-          const: true
-        livemode:
-          type: boolean
-        rotated_at:
-          type: string
-          format: date-time
-    WebhookEndpointCreate:
-      type: object
-      additionalProperties: false
-      required:
-      - url
-      - events
-      properties:
-        name:
-          type: string
-          maxLength: 200
-        url:
-          type: string
-          format: uri
-          description: A public HTTPS endpoint.
-        events:
+          const: list
+        data:
           type: array
-          minItems: 1
-          uniqueItems: true
           items:
-            enum:
-            - payment.created
-            - payment.processing
-            - payment.confirmed
-            - payment.failed
-            - payment.canceled
-            - payment.refunded
-            - payment.swept
-            - refund.created
-            - refund.completed
-            - refund.failed
-            - payout.created
-            - payout.processing
-            - payout.action_required
-            - payout.partially_completed
-            - payout.completed
-            - payout.failed
-            - payroll.run.created
-            - payroll.run.approved
-            - payroll.run.processing
-            - payroll.run.action_required
-            - payroll.run.partially_completed
-            - payroll.run.completed
-            - payroll.run.failed
-            - payroll.payment.completed
-            - payroll.payment.failed
-            - payroll.payment.action_required
-            - checkout.session.completed
-            - checkout.session.expired
-            - escrow.created
-            - escrow.released
-            - escrow.cancelled
-            - invoice.created
-            - invoice.sent
-            - invoice.paid
-            - b2b.order.created
-            - b2b.order.paid
-            - b2b.order.shipped
-  responses:
+            $ref: '#/components/schemas/WebhookDelivery'
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+          - string
+          - 'null'
+          pattern: ^dlv_
     Error:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-  parameters:
-    ResourceId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml

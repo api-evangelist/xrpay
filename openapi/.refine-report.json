@@ -1,8 +1,7 @@
 {
   "provider": "xrpay",
   "sources": [
-    "_original/xrpay-openapi.json",
-    "xrpay-openapi.yml"
+    "_original/xrpay-openapi.json"
   ],
   "outputs": [
     "xrpay-connected-account-api-openapi.yml",
@@ -13,23 +12,23 @@
     "xrpay-sandbox-api-openapi.yml",
     "xrpay-webhooks-api-openapi.yml"
   ],
-  "archived": [
-    "archived openapi/xrpay-openapi.yml"
-  ],
+  "archived": [],
   "errors": [],
   "warnings": [],
   "notes": [
+    "1 archived document(s) dropped as subsets of other archived documents",
     "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
     "xrpay-openapi.json: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "xrpay-openapi.yml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "tag 'Connected account' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Payment intents' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Payouts' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Payroll' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Refunds' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Sandbox' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "tag 'Webhooks' spans 2 source specs (xrpay-openapi.json, xrpay-openapi.yml): per-path servers applied",
-    "apis.yml register: written (+7 apis, 7 total)"
+    "apis.yml register: already-registered"
   ],
-  "skipped": []
+  "skipped": [
+    "_original/xrpay-openapi.yml: archived document superseded by a larger archived document",
+    "xrpay-connected-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-payment-intents-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-payouts-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-payroll-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-refunds-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-sandbox-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "xrpay-webhooks-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
 }

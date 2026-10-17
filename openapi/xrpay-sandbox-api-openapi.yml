@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Sandbox API
+  title: XRPay Cashier Sandbox API
   version: '2026-08-30'
-  description: 'Operations tagged Sandbox across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -45,8 +45,6 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/refunds/{id}/simulate:
     post:
       tags:
@@ -80,10 +78,173 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
+    TestBalanceCredit:
+      type: object
+      description: An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.
+      required:
+      - credited
+      - idempotent_replay
+      - amount
+      - currency
+      - livemode
+      - simulated
+      - external_money_moved
+      properties:
+        credited:
+          const: true
+        idempotent_replay:
+          type: boolean
+          description: True when the same successful simulation was replayed and no second balance entry was created.
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+        livemode:
+          const: false
+        simulated:
+          const: true
+        external_money_moved:
+          const: false
+    Refund:
+      type: object
+      required:
+      - object
+      - id
+      - payment_intent_id
+      - status
+      - amount_minor
+      - currency
+      properties:
+        object:
+          const: refund
+        id:
+          type: string
+        payment_intent_id:
+          type: string
+        status:
+          enum:
+          - pending
+          - requires_action
+          - processing
+          - completed
+          - failed
+          - canceled
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        settlement:
+          $ref: '#/components/schemas/Settlement'
+        type:
+          enum:
+          - full
+          - partial
+        reason:
+          type:
+          - string
+          - 'null'
+        external_refund_id:
+          type:
+          - string
+          - 'null'
+        next_action:
+          type:
+          - object
+          - 'null'
+        livemode:
+          type: boolean
+        sandbox_simulated:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        failed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    Settlement:
+      type: object
+      properties:
+        amount:
+          type: string
+        currency:
+          type: string
+        transaction_hash:
+          type:
+          - string
+          - 'null'
+        destination_address:
+          type:
+          - string
+          - 'null'
+    PaymentNextAction:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          enum:
+          - display_qr
+          - approve_on_phone
+          - submit_otp
+          - wait_for_confirmation
+          - simulate_payment
+        qr_data:
+          type: string
+        qr_image:
+          type: string
+        hosted_url:
+          type: string
+          format: uri
+        deep_link:
+          type: string
+        message:
+          type: string
+        confirmation_endpoint:
+          type: string
+        simulation_endpoint:
+          type: string
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
     PaymentIntent:
       type: object
       required:
@@ -241,171 +402,6 @@ components:
           - string
           - 'null'
           format: date-time
-    Settlement:
-      type: object
-      properties:
-        amount:
-          type: string
-        currency:
-          type: string
-        transaction_hash:
-          type:
-          - string
-          - 'null'
-        destination_address:
-          type:
-          - string
-          - 'null'
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: object
-          required:
-          - type
-          - message
-          properties:
-            type:
-              type: string
-            code:
-              type:
-              - string
-              - 'null'
-            message:
-              type: string
-    PaymentNextAction:
-      type: object
-      required:
-      - type
-      properties:
-        type:
-          enum:
-          - display_qr
-          - approve_on_phone
-          - submit_otp
-          - wait_for_confirmation
-          - simulate_payment
-        qr_data:
-          type: string
-        qr_image:
-          type: string
-        hosted_url:
-          type: string
-          format: uri
-        deep_link:
-          type: string
-        message:
-          type: string
-        confirmation_endpoint:
-          type: string
-        simulation_endpoint:
-          type: string
-    Refund:
-      type: object
-      required:
-      - object
-      - id
-      - payment_intent_id
-      - status
-      - amount_minor
-      - currency
-      properties:
-        object:
-          const: refund
-        id:
-          type: string
-        payment_intent_id:
-          type: string
-        status:
-          enum:
-          - pending
-          - requires_action
-          - processing
-          - completed
-          - failed
-          - canceled
-        amount_minor:
-          type: integer
-        currency:
-          type: string
-        settlement:
-          $ref: '#/components/schemas/Settlement'
-        type:
-          enum:
-          - full
-          - partial
-        reason:
-          type:
-          - string
-          - 'null'
-        external_refund_id:
-          type:
-          - string
-          - 'null'
-        next_action:
-          type:
-          - object
-          - 'null'
-        livemode:
-          type: boolean
-        sandbox_simulated:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        completed_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-        failed_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-    MoneyString:
-      type: string
-      pattern: ^[0-9]+(\.[0-9]{1,18})?$
-      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
-    TestBalanceCredit:
-      type: object
-      description: An idempotent credit to the connected business's isolated virtual payout balance. It never represents external money movement.
-      required:
-      - credited
-      - idempotent_replay
-      - amount
-      - currency
-      - livemode
-      - simulated
-      - external_money_moved
-      properties:
-        credited:
-          const: true
-        idempotent_replay:
-          type: boolean
-          description: True when the same successful simulation was replayed and no second balance entry was created.
-        amount:
-          $ref: '#/components/schemas/MoneyString'
-        currency:
-          type: string
-        livemode:
-          const: false
-        simulated:
-          const: true
-        external_money_moved:
-          const: false
-  responses:
-    Error:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   parameters:
     ResourceId:
       name: id
@@ -418,6 +414,3 @@ components:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml

@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Refunds API
+  title: XRPay Cashier Refunds API
   version: '2026-08-30'
-  description: 'Operations tagged Refunds across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -66,8 +66,6 @@ paths:
                 $ref: '#/components/schemas/Refund'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/refunds/{id}:
     get:
       tags:
@@ -86,44 +84,25 @@ paths:
                 $ref: '#/components/schemas/Refund'
         '404':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
   schemas:
-    Settlement:
-      type: object
-      properties:
-        amount:
-          type: string
-        currency:
-          type: string
-        transaction_hash:
-          type:
-          - string
-          - 'null'
-        destination_address:
-          type:
-          - string
-          - 'null'
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: object
-          required:
-          - type
-          - message
-          properties:
-            type:
-              type: string
-            code:
-              type:
-              - string
-              - 'null'
-            message:
-              type: string
     Refund:
       type: object
       required:
@@ -190,21 +169,21 @@ components:
           - string
           - 'null'
           format: date-time
-    RefundList:
+    Settlement:
       type: object
-      required:
-      - object
-      - data
-      - has_more
       properties:
-        object:
-          const: list
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Refund'
-        has_more:
-          type: boolean
+        amount:
+          type: string
+        currency:
+          type: string
+        transaction_hash:
+          type:
+          - string
+          - 'null'
+        destination_address:
+          type:
+          - string
+          - 'null'
     RefundCreate:
       type: object
       additionalProperties: false
@@ -223,23 +202,40 @@ components:
         external_refund_id:
           type: string
           maxLength: 200
-  parameters:
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema:
-        type: string
-        minLength: 8
-        maxLength: 255
-        pattern: ^[A-Za-z0-9._:/-]+$
-      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
-    ResourceId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
+    RefundList:
+      type: object
+      required:
+      - object
+      - data
+      - has_more
+      properties:
+        object:
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refund'
+        has_more:
+          type: boolean
   responses:
     Error:
       description: Error response
@@ -252,6 +248,3 @@ components:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml

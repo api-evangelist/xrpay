@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Connected account API
+  title: XRPay Cashier Connected account API
   version: '2026-08-30'
-  description: 'Operations tagged Connected account across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -22,8 +22,6 @@ paths:
           description: Connected merchant account
         '401':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/connect/capabilities:
     get:
       tags:
@@ -36,8 +34,6 @@ paths:
           description: Rail-derived connected merchant capabilities
         '401':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/connect/revoke:
     post:
       tags:
@@ -50,9 +46,14 @@ paths:
           description: Connection revoked
         '401':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
     Error:
       type: object
@@ -73,18 +74,8 @@ components:
               - 'null'
             message:
               type: string
-  responses:
-    Error:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml

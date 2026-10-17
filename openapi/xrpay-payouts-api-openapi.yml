@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Payouts API
+  title: XRPay Cashier Payouts API
   version: '2026-08-30'
-  description: 'Operations tagged Payouts across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -28,8 +28,6 @@ paths:
           description: Consolidated balances
         '401':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payout-capabilities:
     get:
       tags:
@@ -55,8 +53,6 @@ paths:
       responses:
         '200':
           description: Provider-neutral payout capabilities
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payout-institutions:
     get:
       tags:
@@ -97,8 +93,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/PayoutInstitution'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payout-destinations:
     get:
       tags:
@@ -133,8 +127,6 @@ paths:
                 $ref: '#/components/schemas/PayoutDestination'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payout-destinations/{id}:
     get:
       tags:
@@ -167,8 +159,6 @@ paths:
           description: Destination deactivated
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payout-quotes:
     post:
       tags:
@@ -192,8 +182,6 @@ paths:
                 $ref: '#/components/schemas/PayoutQuote'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payouts:
     get:
       tags:
@@ -236,8 +224,6 @@ paths:
           description: Idempotent replay
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payouts/{id}:
     get:
       tags:
@@ -256,73 +242,26 @@ paths:
                 $ref: '#/components/schemas/Payout'
         '404':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
   schemas:
-    PayoutQuoteCreate:
-      type: object
-      additionalProperties: false
-      required:
-      - destination_id
-      - currency
-      - amount_mode
-      properties:
-        destination_id:
-          type: string
-        currency:
-          type: string
-        amount_mode:
-          enum:
-          - exact
-          - maximum
-        amount:
-          $ref: '#/components/schemas/MoneyString'
-        funding_source:
-          const: provider_balance
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: object
-          required:
-          - type
-          - message
-          properties:
-            type:
-              type: string
-            code:
-              type:
-              - string
-              - 'null'
-            message:
-              type: string
-    PayoutDestinationCreate:
-      type: object
-      additionalProperties: false
-      required:
-      - institution_id
-      - account_holder_name
-      - account_number
-      properties:
-        institution_id:
-          type: string
-        account_holder_name:
-          type: string
-          minLength: 2
-          maxLength: 200
-        account_number:
-          type: string
-          minLength: 4
-          maxLength: 100
-        label:
-          type: string
-          maxLength: 200
-        make_default:
-          type: boolean
-    PayoutInstitution:
+    PayoutDestination:
       type: object
       required:
       - id
@@ -330,15 +269,13 @@ components:
       - type
       - country
       - currency
-      - code
-      - name
+      - last4
       - status
-      - test_mode
       properties:
         id:
           type: string
         object:
-          const: payout_institution
+          const: payout_destination
         type:
           enum:
           - bank
@@ -347,19 +284,23 @@ components:
           type: string
         currency:
           type: string
-        code:
-          type: string
-        name:
+        label:
+          type:
+          - string
+          - 'null'
+        account_holder_name:
+          type:
+          - string
+          - 'null'
+        last4:
           type: string
         status:
-          type: string
-        test_mode:
+          enum:
+          - pending
+          - verified
+          - inactive
+        is_default:
           type: boolean
-          description: True only for an XRPay simulated destination. It does not identify a real bank or Mobile Money operator.
-    MoneyString:
-      type: string
-      pattern: ^[0-9]+(\.[0-9]{1,18})?$
-      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
     PayoutQuote:
       type: object
       required:
@@ -427,7 +368,7 @@ components:
         expires_at:
           type: string
           format: date-time
-    PayoutDestination:
+    PayoutInstitution:
       type: object
       required:
       - id
@@ -435,13 +376,15 @@ components:
       - type
       - country
       - currency
-      - last4
+      - code
+      - name
       - status
+      - test_mode
       properties:
         id:
           type: string
         object:
-          const: payout_destination
+          const: payout_institution
         type:
           enum:
           - bank
@@ -450,23 +393,58 @@ components:
           type: string
         currency:
           type: string
-        label:
-          type:
-          - string
-          - 'null'
-        account_holder_name:
-          type:
-          - string
-          - 'null'
-        last4:
+        code:
+          type: string
+        name:
           type: string
         status:
-          enum:
-          - pending
-          - verified
-          - inactive
-        is_default:
+          type: string
+        test_mode:
           type: boolean
+          description: True only for an XRPay simulated destination. It does not identify a real bank or Mobile Money operator.
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
+    PayoutQuoteCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - destination_id
+      - currency
+      - amount_mode
+      properties:
+        destination_id:
+          type: string
+        currency:
+          type: string
+        amount_mode:
+          enum:
+          - exact
+          - maximum
+        amount:
+          $ref: '#/components/schemas/MoneyString'
+        funding_source:
+          const: provider_balance
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
     Payout:
       type: object
       description: One merchant-facing payout. Delivery IDs are opaque and never identify a provider.
@@ -558,23 +536,29 @@ components:
                 type:
                 - string
                 - 'null'
-  parameters:
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema:
-        type: string
-        minLength: 8
-        maxLength: 255
-        pattern: ^[A-Za-z0-9._:/-]+$
-      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
-    ResourceId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
+    PayoutDestinationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - institution_id
+      - account_holder_name
+      - account_number
+      properties:
+        institution_id:
+          type: string
+        account_holder_name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        account_number:
+          type: string
+          minLength: 4
+          maxLength: 100
+        label:
+          type: string
+          maxLength: 200
+        make_default:
+          type: boolean
   responses:
     Error:
       description: Error response
@@ -587,6 +571,3 @@ components:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml

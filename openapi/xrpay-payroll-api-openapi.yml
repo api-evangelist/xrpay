@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Xrpay Payroll API
+  title: XRPay Cashier Payroll API
   version: '2026-08-30'
-  description: 'Operations tagged Payroll across 2 of this provider''s published API definitions: xrpay-openapi.json, xrpay-openapi.yml. Each path carries the servers of the definition it was published in.'
+  description: 'Server-to-server API for payments, consolidated balances, bank and Mobile Money payouts, payroll, refunds, and signed webhooks. Test credentials use isolated virtual balances: a successful local-currency payment simulation can fund a test payout, and executing that payout never contacts a bank or Mobile Money network. Payment-intent amounts are integer minor units; payout and payroll amounts are exact decimal strings. Provider identities and custody allocations are never exposed.'
 servers:
 - url: https://api.xrpay.it
 security:
@@ -37,8 +37,6 @@ paths:
       responses:
         '201':
           description: Employee created
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/employees/{id}:
     get:
       tags:
@@ -93,8 +91,6 @@ paths:
       responses:
         '204':
           description: Employee deactivated
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/employees/{id}/invitations:
     post:
       tags:
@@ -108,8 +104,6 @@ paths:
       responses:
         '201':
           description: Invitation sent
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs:
     get:
       tags:
@@ -154,8 +148,6 @@ paths:
                 $ref: '#/components/schemas/PayrollRun'
         '200':
           description: Idempotent replay
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs/{id}:
     get:
       tags:
@@ -172,8 +164,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PayrollRun'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs/{id}/items:
     get:
       tags:
@@ -210,8 +200,6 @@ paths:
       responses:
         '201':
           description: Run item created
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs/{id}/quote:
     post:
       tags:
@@ -230,8 +218,6 @@ paths:
                 $ref: '#/components/schemas/PayrollRun'
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs/{id}/approve:
     post:
       tags:
@@ -248,8 +234,6 @@ paths:
           description: Approved payroll run
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
   /api/v1/payroll/runs/{id}/execute:
     post:
       tags:
@@ -266,29 +250,56 @@ paths:
           description: Processing or terminal payroll run
         '409':
           $ref: '#/components/responses/Error'
-    servers:
-    - url: https://api.xrpay.it
 components:
-  schemas:
+  responses:
     Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: ^[A-Za-z0-9._:/-]+$
+      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
+  schemas:
+    PayrollEmployeeCreate:
       type: object
+      additionalProperties: false
       required:
-      - error
+      - name
+      - email
+      - salary
+      - currency
       properties:
-        error:
-          type: object
-          required:
-          - type
-          - message
-          properties:
-            type:
-              type: string
-            code:
-              type:
-              - string
-              - 'null'
-            message:
-              type: string
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        email:
+          type: string
+          format: email
+        salary:
+          $ref: '#/components/schemas/MoneyString'
+        currency:
+          type: string
+    MoneyString:
+      type: string
+      pattern: ^[0-9]+(\.[0-9]{1,18})?$
+      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
     PayrollRun:
       type: object
       description: A single-currency payroll run. Each payment is indivisible and uses exactly one internal custody pool.
@@ -344,59 +355,27 @@ components:
           type: array
           items:
             type: object
-    MoneyString:
-      type: string
-      pattern: ^[0-9]+(\.[0-9]{1,18})?$
-      description: An exact non-negative decimal amount. Never parse this as a binary floating-point number.
-    PayrollEmployeeCreate:
-      type: object
-      additionalProperties: false
-      required:
-      - name
-      - email
-      - salary
-      - currency
-      properties:
-        name:
-          type: string
-          minLength: 2
-          maxLength: 160
-        email:
-          type: string
-          format: email
-        salary:
-          $ref: '#/components/schemas/MoneyString'
-        currency:
-          type: string
-  parameters:
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema:
-        type: string
-        minLength: 8
-        maxLength: 255
-        pattern: ^[A-Za-z0-9._:/-]+$
-      description: Stable key for one logical operation. Reusing a key with different parameters returns HTTP 409.
-    ResourceId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-  responses:
     Error:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - type
+          - message
+          properties:
+            type:
+              type: string
+            code:
+              type:
+              - string
+              - 'null'
+            message:
+              type: string
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Secret API key or XRPay Connect access token.
-x-refined-from:
-- xrpay-openapi.json
-- xrpay-openapi.yml
