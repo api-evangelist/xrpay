@@ -18,6 +18,13 @@ tags:
 - Payments
 - Merchant Payments
 - Refunds
+- Webhook
+- Fintech
+tags_raw:
+- Company
+- Payments
+- Merchant Payments
+- Refunds
 - Webhooks
 - Fintech
 maintainers:
@@ -111,6 +118,8 @@ apis:
   humanURL: https://api.xrpay.it/docs/api
   baseURL: https://api.xrpay.it
   tags:
+  - Payment Intents
+  tags_raw:
   - Payment intents
   properties:
   - type: OpenAPI
@@ -221,6 +230,8 @@ apis:
   humanURL: https://api.xrpay.it/docs/api
   baseURL: https://api.xrpay.it
   tags:
+  - Webhook
+  tags_raw:
   - Webhooks
   properties:
   - type: OpenAPI
